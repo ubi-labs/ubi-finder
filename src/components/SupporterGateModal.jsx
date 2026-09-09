@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Heart, Sparkles, ShieldCheck, Lock, Globe, CheckCircle2, Bell, Zap, FileText } from 'lucide-react';
 import StripeCheckoutModal from '@/components/StripeCheckoutModal';
 
-export default function SupporterGateModal({ isOpen, user, featureName = "full program details and interactive map exploration" }) {
+export default function SupporterGateModal({ isOpen, user = null, featureName = "full program details and interactive map exploration", onClose = null }) {
   const [selectedAmount, setSelectedAmount] = useState(5);
   const [customAmount, setCustomAmount] = useState('');
   const [isCustom, setIsCustom] = useState(false);
@@ -37,7 +37,7 @@ export default function SupporterGateModal({ isOpen, user, featureName = "full p
 
   return (
     <>
-      <Dialog open={isOpen && !stripeModalOpen} onOpenChange={() => {}}>
+      <Dialog open={isOpen && !stripeModalOpen} onOpenChange={(open) => { if (!open && onClose) onClose(); }}>
         <DialogContent 
           className="sm:max-w-lg p-0 overflow-hidden rounded-3xl border-emerald-300 shadow-2xl bg-white"
           onPointerDownOutside={(e) => e.preventDefault()}

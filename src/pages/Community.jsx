@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { MessageSquare, Users, Megaphone, Send, Filter, Plus, Sparkles, Tag, ChevronDown, CheckCircle, Heart } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { getSupporterStatus } from "@/lib/supporterPoints";

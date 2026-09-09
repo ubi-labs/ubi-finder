@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
+import { Sparkles, ArrowRight, ArrowLeft, CheckCircle2, MapPin, Building, CreditCard, Coins, Smartphone, UserCheck, Check } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/lib/AuthContext";
 import { resetPointsWithProfileCompletion } from "@/lib/supporterPoints";
