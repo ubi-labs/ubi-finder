@@ -232,7 +232,9 @@ export async function recordUsageAction(actionType, user = null) {
           last_action_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }, { onConflict: 'user_id,ip_hash' });
-      } catch (err) {}
+      } catch (err) {
+        // Silently ignore upsert error
+      }
     })();
   }
 
@@ -254,7 +256,9 @@ export async function markEncouragementDismissed(user = null) {
         encouragement_shown: true,
         updated_at: new Date().toISOString()
       }, { onConflict: 'user_id,ip_hash' });
-    } catch (e) {}
+    } catch (e) {
+      // Silently ignore upsert error
+    }
   }
 }
 
@@ -288,7 +292,9 @@ export async function resetPointsWithProfileCompletion(user = null) {
         points_total: 0,
         updated_at: new Date().toISOString()
       }, { onConflict: 'user_id,ip_hash' });
-    } catch (e) {}
+    } catch (e) {
+      // Silently ignore upsert error
+    }
   }
 
   return await getSupporterStatus(user);
