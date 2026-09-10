@@ -419,8 +419,8 @@ VALUES
 • Participate in or contribute to one or more participating network projects
 • Active account in good standing during the open epoch cycle
 • Open to all verified individuals worldwide',
-   'active_open', 'https://fundloop-website.vercel.app/en', true, 'kazanderdad@gmail.com',
-   'Ongoing', 'Accepting registrations', 'https://fundloop-website.vercel.app/en',
+   'upcoming', 'https://fundloop-website.vercel.app/en', true, 'kazanderdad@gmail.com',
+   'Planned', 'Planned; registration not open', 'https://fundloop-website.vercel.app/en',
    ARRAY['https://fundloop-website.vercel.app/en', 'https://fundloop.org']::text[], 'active',
    'guaranteed_recurrent', 'direct_deposit', 'philanthropic_grant',
    'Global', ARRAY['Global']::text[],
@@ -1669,9 +1669,9 @@ UPDATE public.programs
 SET min_age = 18,
     max_age = NULL,
     gender_requirement = NULL,
-    max_household_income_usd = NULL,
-    application_status = 'Accepting applications',
-    status = 'active_open',
+    application_status = 'Planned; registration not open',
+    payout_status = 'Planned',
+    status = 'upcoming',
     distribution_type = 'daily_claim_protocol',
     payout_rail = 'crypto_wallet',
     funding_source = 'protocol_yield',
