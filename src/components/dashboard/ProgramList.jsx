@@ -237,8 +237,13 @@ export default function ProgramList({ programs, onToggleFavorite, favoriteProgra
                       </Badge>
                     )}
 
-                    {/* Data Source Badge (Stanford Lab vs Community) */}
-                    {program.data_source === 'stanford_basic_income_lab' || program.stanford_experiment_id ? (
+                    {/* Data Source Badge (Stanford Lab vs Government Sites vs Community) */}
+                    {program.data_source === "government_sites" || program.distribution_type === "permanent_statewide" ? (
+                      <Badge className="bg-blue-50 text-blue-900 border-blue-200 font-semibold flex items-center gap-1 text-[11px]">
+                        <Landmark className="w-3 h-3 text-blue-700" />
+                        Government sites
+                      </Badge>
+                    ) : program.data_source === 'stanford_basic_income_lab' || program.stanford_experiment_id ? (
                       <Badge className="bg-red-50 text-red-900 border-red-200 font-semibold flex items-center gap-1 text-[11px]">
                         <GraduationCap className="w-3 h-3 text-red-700" />
                         Stanford Basic Income Lab

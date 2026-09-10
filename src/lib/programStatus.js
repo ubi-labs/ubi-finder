@@ -39,3 +39,37 @@ export function matchesProgramStatus(program, statusKey) {
       return true;
   }
 }
+
+/**
+ * Classify a program's primary source.
+ * Possible values: 'stanford' | 'government' | 'community'
+ *
+ * @param {Record<string, any>} program
+ * @returns {'stanford' | 'government' | 'community'}
+ */
+export function getProgramSource(program) {
+  if (
+    program.data_source === "government_sites" ||
+    program.distribution_type === "permanent_statewide"
+  ) {
+    return "government";
+  }
+  if (
+    program.data_source === "stanford_basic_income_lab" ||
+    !!program.stanford_experiment_id
+  ) {
+    return "stanford";
+  }
+  return "community";
+}
+
+/**
+ * Check if a program matches a source filter key.
+ *
+ * @param {Record<string, any>} program
+ * @param {string} sourceKey
+ */
+export function matchesProgramSource(program, sourceKey) {
+  if (!sourceKey || sourceKey === "all") return true;
+  return getProgramSource(program) === sourceKey;
+}

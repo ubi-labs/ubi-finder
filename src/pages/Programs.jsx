@@ -35,7 +35,8 @@ import {
   ShieldCheck,
   Zap,
   MapPin,
-  Sparkles
+  Sparkles,
+  Landmark
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -51,7 +52,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import PageHeader from "@/components/ui/page-header";
 import { Helmet } from "react-helmet-async";
 import { evaluateEligibility, isProfileComplete } from "@/lib/matchingEngine";
-import { matchesProgramStatus } from "@/lib/programStatus";
+import { matchesProgramStatus, matchesProgramSource, getProgramSource } from "@/lib/programStatus";
 
 // Multi-select facet dropdown component
 function FacetMultiSelect({ label, options, selectedValues = [], onChange }) {
@@ -362,15 +363,9 @@ export default function Programs() {
     }
 
     if (filterMode === "quick") {
-      // Source filter (Stanford Basic Income Lab vs Community Submissions)
-      if (sourceFilter === "stanford") {
-        if (program.data_source !== "stanford_basic_income_lab" && !program.stanford_experiment_id) {
-          return false;
-        }
-      } else if (sourceFilter === "community") {
-        if (program.data_source === "stanford_basic_income_lab" || program.stanford_experiment_id) {
-          return false;
-        }
+      // Source filter (Stanford Basic Income Lab vs Government sites vs Community Submissions)
+      if (!matchesProgramSource(program, sourceFilter)) {
+        return false;
       }
 
       // Quick Select Mode: Either/Or
@@ -386,12 +381,7 @@ export default function Programs() {
 
       // Source multi-select
       if (advancedFilters.sources && advancedFilters.sources.length > 0) {
-        const isStanford = program.data_source === "stanford_basic_income_lab" || !!program.stanford_experiment_id;
-        const matchesSource = advancedFilters.sources.some(s => {
-          if (s === "stanford") return isStanford;
-          if (s === "community") return !isStanford;
-          return true;
-        });
+        const matchesSource = advancedFilters.sources.some(s => matchesProgramSource(program, s));
         if (!matchesSource) return false;
       }
 
@@ -492,8 +482,9 @@ export default function Programs() {
 
   const sourceCounts = {
     all: sourceBasePrograms.length,
-    stanford: sourceBasePrograms.filter((p) => p.data_source === "stanford_basic_income_lab" || p.stanford_experiment_id).length,
-    community: sourceBasePrograms.filter((p) => p.data_source !== "stanford_basic_income_lab" && !p.stanford_experiment_id).length,
+    stanford: sourceBasePrograms.filter((p) => matchesProgramSource(p, "stanford")).length,
+    government: sourceBasePrograms.filter((p) => matchesProgramSource(p, "government")).length,
+    community: sourceBasePrograms.filter((p) => matchesProgramSource(p, "community")).length,
   };
 
   // Dynamic Status Counts Calculation (respects active search and sourceFilter)
@@ -508,25 +499,14 @@ export default function Programs() {
     }
 
     if (filterMode === "quick") {
-      if (sourceFilter === "stanford") {
-        if (program.data_source !== "stanford_basic_income_lab" && !program.stanford_experiment_id) {
-          return false;
-        }
-      } else if (sourceFilter === "community") {
-        if (program.data_source === "stanford_basic_income_lab" || program.stanford_experiment_id) {
-          return false;
-        }
+      if (!matchesProgramSource(program, sourceFilter)) {
+        return false;
       }
       return true;
     } else {
       if (!advancedFilters.includeUnverified && !program.verified) return false;
       if (advancedFilters.sources && advancedFilters.sources.length > 0) {
-        const isStanford = program.data_source === "stanford_basic_income_lab" || !!program.stanford_experiment_id;
-        const matchesSource = advancedFilters.sources.some(s => {
-          if (s === "stanford") return isStanford;
-          if (s === "community") return !isStanford;
-          return true;
-        });
+        const matchesSource = advancedFilters.sources.some(s => matchesProgramSource(program, s));
         if (!matchesSource) return false;
       }
       if (advancedFilters.countries.length > 0) {
@@ -862,6 +842,18 @@ export default function Programs() {
                   </button>
                   <button
                     type="button"
+                    onClick={() => setSourceFilter("government")}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      sourceFilter === "government"
+                        ? "bg-blue-800 text-white shadow-xs ring-1 ring-blue-800"
+                        : "bg-white text-blue-900 hover:bg-blue-50 border border-blue-200"
+                    }`}
+                  >
+                    <Landmark className="w-3.5 h-3.5 text-blue-600" />
+                    Government sites ({sourceCounts.government})
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setSourceFilter("community")}
                     className={`px-3 py-1 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                       sourceFilter === "community"
@@ -977,6 +969,7 @@ export default function Programs() {
                     label="Source / Origin"
                     options={[
                       { value: "stanford", label: "Stanford Basic Income Lab" },
+                      { value: "government", label: "Government sites" },
                       { value: "community", label: "Community Submissions" },
                     ]}
                     selectedValues={advancedFilters.sources}
@@ -1419,7 +1412,12 @@ export default function Programs() {
                               {/* Source */}
                               <td className="px-3 py-3">
                                 <div className="flex items-center gap-1 flex-wrap">
-                                  {isStanford ? (
+                                  {getProgramSource(program) === "government" ? (
+                                    <Badge className="bg-blue-50 text-blue-800 border-blue-200 text-[10px] font-semibold py-0 px-1.5 shadow-2xs">
+                                      <Landmark className="w-2.5 h-2.5 mr-1 text-blue-600" />
+                                      Government
+                                    </Badge>
+                                  ) : isStanford ? (
                                     <Badge className="bg-red-50 text-red-800 border-red-200 text-[10px] font-semibold py-0 px-1.5 shadow-2xs">
                                       <GraduationCap className="w-2.5 h-2.5 mr-1 text-red-600" />
                                       Stanford

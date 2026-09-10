@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { matchesProgramStatus } from "@/lib/programStatus";
+import { matchesProgramStatus, getProgramSource, matchesProgramSource } from "@/lib/programStatus";
 
 describe("matchesProgramStatus", () => {
   it.each([
@@ -33,3 +33,40 @@ describe("matchesProgramStatus", () => {
     expect(matchesProgramStatus({ distribution_type: "daily_claim_protocol", status: "upcoming", payout_status: "Planned" }, "accepting_applications")).toBe(false);
   });
 });
+
+describe("getProgramSource and matchesProgramSource", () => {
+  it("classifies permanent_statewide as government", () => {
+    const prog = { distribution_type: "permanent_statewide" };
+    expect(getProgramSource(prog)).toBe("government");
+    expect(matchesProgramSource(prog, "government")).toBe(true);
+    expect(matchesProgramSource(prog, "community")).toBe(false);
+    expect(matchesProgramSource(prog, "stanford")).toBe(false);
+    expect(matchesProgramSource(prog, "all")).toBe(true);
+  });
+
+  it("classifies data_source = government_sites as government", () => {
+    const prog = { data_source: "government_sites" };
+    expect(getProgramSource(prog)).toBe("government");
+    expect(matchesProgramSource(prog, "government")).toBe(true);
+    expect(matchesProgramSource(prog, "community")).toBe(false);
+  });
+
+  it("classifies stanford_basic_income_lab or stanford_experiment_id as stanford", () => {
+    const prog1 = { data_source: "stanford_basic_income_lab" };
+    const prog2 = { stanford_experiment_id: 123 };
+    expect(getProgramSource(prog1)).toBe("stanford");
+    expect(getProgramSource(prog2)).toBe("stanford");
+    expect(matchesProgramSource(prog1, "stanford")).toBe(true);
+    expect(matchesProgramSource(prog2, "stanford")).toBe(true);
+    expect(matchesProgramSource(prog1, "community")).toBe(false);
+  });
+
+  it("classifies other programs as community", () => {
+    const prog = { data_source: "community_submission" };
+    expect(getProgramSource(prog)).toBe("community");
+    expect(matchesProgramSource(prog, "community")).toBe(true);
+    expect(matchesProgramSource(prog, "government")).toBe(false);
+    expect(matchesProgramSource(prog, "stanford")).toBe(false);
+  });
+});
+
