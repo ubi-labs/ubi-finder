@@ -392,39 +392,39 @@ VALUES
    'Global', ARRAY['Global']::text[],
    32.0853, 34.7818),
 
-  (22, 'European Digital Euro Pilot', 'European Central Bank & Eurosystem',
-   'The European Digital Euro initiative is the ECB''s official framework and preparatory testing phase exploring a digital euro central bank digital currency (CBDC) to complement cash, strengthen European monetary sovereignty, and enable universal, instant digital payment rails for euro area residents.',
+  (22, 'European Digital Euro Pilot', 'European Central Bank (ECB) & Eurosystem',
+   'The European Digital Euro initiative is the official Eurosystem framework exploring a retail central bank digital currency (CBDC) to complement physical cash. It aims to deliver a pan-European, cost-free, privacy-preserving digital payment instrument usable across all 20 euro area countries for in-store, online, and person-to-person transactions. The Eurosystem is currently in a preparatory testing and rulebook development phase; controlled technical and user pilots are targeted for 2027 ahead of potential formal issuance around 2029 pending EU legislative adoption.',
    NULL, 18, NULL, 47.0, 'EUR',
    ARRAY['Germany', 'France', 'Spain', 'Italy', 'Ireland', 'Netherlands', 'Belgium', 'Austria', 'Portugal', 'Finland', 'Greece']::text[],
    ARRAY[]::text[],
-   'digital', '43 EUR (~$47 USD) testing allowance benchmark', NULL,
-   '• Resident of a participating Eurozone member state
-• Euro-denominated payment account with a licensed European Payment Service Provider (PSP)
-• Identity verification satisfying EU AML/KYC requirements
-• Participation subject to ECB pilot cohort selection',
-   'upcoming', 'https://www.ecb.europa.eu/paym/digital_euro/', true, NULL,
-   'Planned for 2027 testing phase', 'Not open yet / Institutional pilot', 'https://www.ecb.europa.eu/paym/digital_euro/',
-   ARRAY['https://www.ecb.europa.eu/paym/digital_euro/', 'https://www.centralbank.ie/consumer-hub/digital-euro']::text[], 'active',
-   'guaranteed_recurrent', 'direct_deposit', 'philanthropic_grant',
+   'digital', '43 EUR (~$47 USD) testing allowance benchmark (planned holding limit / pilot transaction allocation)', NULL,
+   '• Legal resident or citizen of a participating Eurozone member state
+• Euro-denominated payment account with a licensed European Payment Service Provider (PSP) or credit institution
+• Identity verification meeting European Union AML/CFT and consumer protection frameworks
+• Technical pilot participation subject to Eurosystem cohort selection, supervised sandbox parameters, and holding-limit rules',
+   'upcoming', 'https://www.ecb.europa.eu/euro/digital_euro/html/index.en.html', true, NULL,
+   'Planned (Targeting 2027 Eurosystem pilot phase)', 'Planned; pilot cohort enrollment pending EU legislation', 'https://www.ecb.europa.eu/euro/digital_euro/html/index.en.html',
+   ARRAY['https://www.ecb.europa.eu/euro/digital_euro/html/index.en.html', 'https://www.ecb.europa.eu/paym/digital_euro/', 'https://www.centralbank.ie/consumer-hub/explainers/what-is-the-digital-euro']::text[], 'active',
+   'guaranteed_recurrent', 'crypto_wallet', 'state_federal',
    'Hesse', ARRAY['Eurozone']::text[],
    50.1109, 8.6821),
 
   (23, 'FundLoop', 'FundLoop Network',
-   'FundLoop is a monthly networked economy for shared prosperity. Participating software projects pool a recurring percentage of revenue, verified contributors prove personhood via CUBID.me, and each monthly epoch automatically distributes and accounts for claimable Citizen Salary awards.',
+   'FundLoop is a networked mutual-prosperity protocol where participating software platforms and startup founders pool a recurring share (e.g. 1%) of platform revenue into a community distribution fund. Operating in structured monthly epochs, FundLoop combines project commitment intake, Zero-Knowledge proof-of-personhood via CUBID, and governed allocation algorithms to distribute unconditional rewards and Citizen Salaries directly to active users, volunteers, and product champions. On-chain settlement operates on the Base network with fail-closed governance gates.',
    NULL, 18, NULL, 25.0, 'USD',
    ARRAY['Global']::text[],
    ARRAY[]::text[],
-   'digital', 'Monthly revenue-share distribution based on contribution & participation', NULL,
-   '• Connect CUBID.me to prove uniqueness and personhood without exposing private identity
-• Participate in or contribute to one or more participating network projects
-• Active account in good standing during the open epoch cycle
-• Open to all verified individuals worldwide',
+   'digital', 'Variable monthly revenue-share distribution based on pool size and contribution weighting (benchmark ~$25 USD/mo)', NULL,
+   '• Verified uniqueness and proof-of-personhood via CUBID.me (zero-knowledge sybil resistance without exposing private identity data)
+• Active participation, testing, feedback, or contribution within one or more participating network apps during the open monthly epoch
+• Compatible EVM-compatible digital wallet (Base network) connected to recipient profile
+• Account in good standing; open universally to participants worldwide regardless of nationality or geographic region',
    'upcoming', 'https://fundloop-website.vercel.app/en', true, 'kazanderdad@gmail.com',
-   'Planned', 'Planned; registration not open', 'https://fundloop-website.vercel.app/en',
-   ARRAY['https://fundloop-website.vercel.app/en', 'https://fundloop.org']::text[], 'active',
-   'guaranteed_recurrent', 'direct_deposit', 'philanthropic_grant',
+   'Planned (Inaugural Cohort / Epoch 1 onboarding under way)', 'Planned; onboarding inaugural projects and participant registrations', 'https://fundloop-website.vercel.app/en/participation',
+   ARRAY['https://fundloop-website.vercel.app/en', 'https://fundloop-website.vercel.app/en/participation', 'https://fundloop-website.vercel.app/en/founders', 'https://fundloop.org']::text[], 'active',
+   'daily_claim_protocol', 'crypto_wallet', 'protocol_yield',
    'Global', ARRAY['Global']::text[],
-   37.7749, -122.4194),
+   46.2044, 6.1432),
 
   (24, 'Community Support Initiative', 'Regional Development Council',
    'Quarterly support payments for local residents',
@@ -1653,7 +1653,17 @@ SET min_age = 18,
     max_age = NULL,
     gender_requirement = NULL,
     max_household_income_usd = NULL,
-    application_status = 'Planned',
+    organization = 'European Central Bank (ECB) & Eurosystem',
+    description = 'The European Digital Euro initiative is the official Eurosystem framework exploring a retail central bank digital currency (CBDC) to complement physical cash. It aims to deliver a pan-European, cost-free, privacy-preserving digital payment instrument usable across all 20 euro area countries for in-store, online, and person-to-person transactions. The Eurosystem is currently in a preparatory testing and rulebook development phase; controlled technical and user pilots are targeted for 2027 ahead of potential formal issuance around 2029 pending EU legislative adoption.',
+    eligibility = '• Legal resident or citizen of a participating Eurozone member state
+• Euro-denominated payment account with a licensed European Payment Service Provider (PSP) or credit institution
+• Identity verification meeting European Union AML/CFT and consumer protection frameworks
+• Technical pilot participation subject to Eurosystem cohort selection, supervised sandbox parameters, and holding-limit rules',
+    amount_description = '43 EUR (~$47 USD) testing allowance benchmark (planned holding limit / pilot transaction allocation)',
+    website = 'https://www.ecb.europa.eu/euro/digital_euro/html/index.en.html',
+    apply_url = 'https://www.ecb.europa.eu/euro/digital_euro/html/index.en.html',
+    application_status = 'Planned; pilot cohort enrollment pending EU legislation',
+    payout_status = 'Planned (Targeting 2027 Eurosystem pilot phase)',
     status = 'upcoming',
     distribution_type = 'guaranteed_recurrent',
     payout_rail = 'crypto_wallet',
@@ -1662,15 +1672,25 @@ SET min_age = 18,
     available_regions = ARRAY['Germany', 'France', 'Spain', 'Italy', 'Ireland', 'Netherlands', 'Belgium', 'Austria', 'Portugal', 'Finland', 'Greece']::text[],
     required_states = ARRAY[]::text[],
     municipalities = ARRAY['Eurozone']::text[],
-    sources = ARRAY['https://www.ecb.europa.eu/paym/digital_euro/', 'https://www.centralbank.ie/consumer-hub/digital-euro']::text[]
+    sources = ARRAY['https://www.ecb.europa.eu/euro/digital_euro/html/index.en.html', 'https://www.ecb.europa.eu/paym/digital_euro/', 'https://www.centralbank.ie/consumer-hub/explainers/what-is-the-digital-euro']::text[]
 WHERE program_id = 22;
 
 UPDATE public.programs
 SET min_age = 18,
     max_age = NULL,
     gender_requirement = NULL,
-    application_status = 'Planned; registration not open',
-    payout_status = 'Planned',
+    max_household_income_usd = NULL,
+    organization = 'FundLoop Network',
+    description = 'FundLoop is a networked mutual-prosperity protocol where participating software platforms and startup founders pool a recurring share (e.g. 1%) of platform revenue into a community distribution fund. Operating in structured monthly epochs, FundLoop combines project commitment intake, Zero-Knowledge proof-of-personhood via CUBID, and governed allocation algorithms to distribute unconditional rewards and Citizen Salaries directly to active users, volunteers, and product champions. On-chain settlement operates on the Base network with fail-closed governance gates.',
+    eligibility = '• Verified uniqueness and proof-of-personhood via CUBID.me (zero-knowledge sybil resistance without exposing private identity data)
+• Active participation, testing, feedback, or contribution within one or more participating network apps during the open monthly epoch
+• Compatible EVM-compatible digital wallet (Base network) connected to recipient profile
+• Account in good standing; open universally to participants worldwide regardless of nationality or geographic region',
+    amount_description = 'Variable monthly revenue-share distribution based on pool size and contribution weighting (benchmark ~$25 USD/mo)',
+    website = 'https://fundloop-website.vercel.app/en',
+    apply_url = 'https://fundloop-website.vercel.app/en/participation',
+    application_status = 'Planned; onboarding inaugural projects and participant registrations',
+    payout_status = 'Planned (Inaugural Cohort / Epoch 1 onboarding under way)',
     status = 'upcoming',
     distribution_type = 'daily_claim_protocol',
     payout_rail = 'crypto_wallet',
@@ -1679,7 +1699,7 @@ SET min_age = 18,
     available_regions = ARRAY['Global']::text[],
     required_states = ARRAY[]::text[],
     municipalities = ARRAY['Global']::text[],
-    sources = ARRAY['https://fundloop-website.vercel.app/en', 'https://fundloop.org']::text[]
+    sources = ARRAY['https://fundloop-website.vercel.app/en', 'https://fundloop-website.vercel.app/en/participation', 'https://fundloop-website.vercel.app/en/founders', 'https://fundloop.org']::text[]
 WHERE program_id = 23;
 
 UPDATE public.programs
