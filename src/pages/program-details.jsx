@@ -37,7 +37,8 @@ import {
   CheckCircle2,
   ChevronDown,
   Sparkles,
-  HelpCircle
+  HelpCircle,
+  Layers
 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import ManagedApplicationModal from "@/components/ManagedApplicationModal";
@@ -45,6 +46,7 @@ import DonationEncouragementModal from "@/components/DonationEncouragementModal"
 import SupporterGateModal from "@/components/SupporterGateModal";
 import { recordUsageAction } from "@/lib/supporterPoints";
 import { createPageUrl } from "@/utils";
+import { getRelatedPrograms } from "@/lib/programGroupingService";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -170,9 +172,12 @@ const AUTO_PARTICIPATION_OPTIONS = [
 export default function ProgramDetailsPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { programId } = location.state || {};
+  const searchParams = new URLSearchParams(location.search);
+  const queryProgramId = searchParams.get('id') || searchParams.get('programId');
+  const programId = location.state?.programId || queryProgramId;
   
   const [program, setProgram] = useState(null);
+  const [relatedPrograms, setRelatedPrograms] = useState([]);
   const [blogPosts, setBlogPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
@@ -249,6 +254,10 @@ export default function ProgramDetailsPage() {
       }
       
       setProgram(programData);
+
+      // Load related programs
+      const related = await getRelatedPrograms(supabase, programId, programData);
+      setRelatedPrograms(related);
       
       // 3. Load blog posts related to this program
       const { data: allPosts } = await supabase
@@ -725,6 +734,63 @@ export default function ProgramDetailsPage() {
                   <h3 className="text-lg font-semibold text-green-950 mb-2">About This Program</h3>
                   <p className="text-gray-700 leading-relaxed">{program.description}</p>
                 </div>
+
+                {/* Similar or related programs (Shown only if related programs exist) */}
+                {relatedPrograms && relatedPrograms.length > 0 && (
+                  <div className="p-5 bg-green-50/70 rounded-2xl border border-green-200 shadow-xs">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-2">
+                        <Layers className="w-5 h-5 text-green-700 flex-shrink-0" />
+                        <h3 className="text-base font-bold text-green-950">Similar or related programs</h3>
+                      </div>
+                      {relatedPrograms[0]?.group_name && (
+                        <Badge variant="outline" className="bg-white text-green-900 border-green-300 text-xs font-semibold px-2.5 py-0.5 self-start sm:self-auto">
+                          {relatedPrograms[0].group_name}
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                      {relatedPrograms.map((rel) => (
+                        <Link
+                          key={rel.program_id}
+                          to={`/program-details?id=${rel.program_id}`}
+                          state={{ programId: rel.program_id }}
+                          className="group p-3.5 bg-white rounded-xl border border-green-100 hover:border-green-300 hover:shadow-md transition-all flex flex-col justify-between"
+                        >
+                          <div>
+                            <div className="flex items-start justify-between gap-2">
+                              <h4 className="text-sm font-bold text-green-950 group-hover:text-green-700 transition-colors line-clamp-2">
+                                {rel.name}
+                              </h4>
+                              <ExternalLink className="w-3.5 h-3.5 text-gray-400 group-hover:text-green-600 transition-colors flex-shrink-0 mt-0.5" />
+                            </div>
+                            {rel.organization && (
+                              <p className="text-xs text-gray-500 mt-1 line-clamp-1">
+                                {rel.organization}
+                              </p>
+                            )}
+                            {rel.state_province && (
+                              <span className="inline-flex items-center gap-1 text-[11px] text-gray-500 mt-1">
+                                <MapPin className="w-3 h-3 text-gray-400" />
+                                {rel.state_province}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100 text-xs">
+                            <span className="font-semibold text-green-900">
+                              ${Number(rel.monthly_amount_usd || 0).toLocaleString()} <span className="text-[10px] font-normal text-gray-500">{rel.currency || 'USD'}/mo</span>
+                            </span>
+                            <span className="text-green-700 group-hover:translate-x-0.5 transition-transform font-medium flex items-center gap-0.5 text-[11px]">
+                              View program &rarr;
+                            </span>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="relative">
                   <Separator className="my-6" />
