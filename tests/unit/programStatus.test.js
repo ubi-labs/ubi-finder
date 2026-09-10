@@ -29,5 +29,7 @@ describe("matchesProgramStatus", () => {
     expect(matchesProgramStatus({ status: "completed" }, "accepting_applications")).toBe(false);
     expect(matchesProgramStatus({ application_status: "No longer accepting" }, "accepting_applications")).toBe(false);
     expect(matchesProgramStatus({ status: "active" }, "planned")).toBe(false);
+    expect(matchesProgramStatus({ distribution_type: "daily_claim_protocol", status: "upcoming", payout_status: "Planned" }, "planned")).toBe(true);
+    expect(matchesProgramStatus({ distribution_type: "daily_claim_protocol", status: "upcoming", payout_status: "Planned" }, "accepting_applications")).toBe(false);
   });
 });
