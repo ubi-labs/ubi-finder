@@ -1,0 +1,22 @@
+# Session Log: 2026-09-10 Program Grouping Level & Related Programs
+
+- **Timestamp**: 2026-09-10T23:58:30Z
+- **Agent**: Antigravity
+- **Branch**: `feat/program-grouping-level`
+- **Pre-commit HEAD**: `13dca1adeab78c2873f099f740dd1a43829ddd6f`
+- **Linked Issue / Request**: Create a parent / grouping level for related programs, including Baby's First Years (219, 244, 259, 277), DMV Regional Pilots (186, 188), Eastern Band of Cherokee Indians (193, 194), and identify further grouping opportunities across the database. Show a "Similar or related programs" section on the program details page with links if related, and hide it if not related.
+- **Summary**:
+  - Identified 17 canonical groupings across the 330 programs in the database (e.g. Baby's First Years, DMV Regional Pilots, Eastern Band of Cherokee Indians, LIFT Family Goal Fund, OpenResearch RISE GMI, Santa Clara County & Destination: Home, Miracle Messages Miracle Money, Cook County Promise, In Her Hands, Philadelphia Maternal & Infant Pilots, Abundant Birth Project, Point Source Youth Trust Youth, United Way California Capital Region, Decentralized & Web3 UBI, Gyeonggi Province Basic Income, Universal Child Benefits, Universal Sovereign Old Age Pensions).
+  - Created migration `supabase/migrations/00038_program_grouping_level.sql` introducing `public.program_groups` table, `public.program_group_members` junction table (many-to-many relationship support), and `parent_program_id` / `program_group_id` foreign keys on `public.programs`. Enabled RLS with public read policies.
+  - Updated canonical `supabase/seed.sql` with migration 00038 schema changes and seed groupings.
+  - Implemented `src/lib/programGroupingService.js` with `filterAndDeduplicateRelatedPrograms` and `getRelatedPrograms` querying group siblings, parent programs, and child programs with deduplication and deletion filtering.
+  - Updated `src/pages/program-details.jsx` to load related programs using `getRelatedPrograms`, support query parameter IDs (`?id=...`), and render the "Similar or related programs" section only when related programs exist.
+  - Added unit test suite `tests/unit/programGrouping.test.js` covering filtering, deduplication, deleted-record exclusions, sibling resolution, parent/child relationships, and failure recovery.
+- **Validation**:
+  - `npm run lint` (passed)
+  - `npm run typecheck` (passed)
+  - `npm run test:coverage` (passed, 5/5 test files, 54/54 tests passing, 99.6% statements, 100% functions)
+  - `npm run build` (built cleanly with Vite)
+- **Follow-ups**:
+  - Push branch `feat/program-grouping-level` to origin.
+  - Create PR and merge into `main` using `--merge` (squash merging disabled).
