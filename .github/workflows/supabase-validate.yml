@@ -54,6 +54,9 @@ jobs:
           echo "VITE_SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
           echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
 
+      - name: Test atomic donation fulfillment and privileges
+        run: node tests/integration/stripe-donations.mjs
+
       - name: Run local browser acceptance
         run: npm run test:acceptance:local
 

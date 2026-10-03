@@ -48,7 +48,7 @@ jobs:
       - name: Deploy All Edge Functions
         run: |
           for func_dir in supabase/functions/*; do
-            if [ -d "$func_dir" ]; then
+            if [ -f "$func_dir/index.ts" ]; then
               func_name=$(basename "$func_dir")
               echo "Deploying Edge Function: $func_name"
               supabase functions deploy "$func_name" --project-ref "$SUPABASE_PROJECT_ID" --no-verify-jwt

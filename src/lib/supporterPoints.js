@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient';
+import { getVerifiedSupporter, loadDonationStatus } from '@/lib/donationStatus';
 
 const STORAGE_KEY = 'ubi_supporter_points_v1';
 
@@ -97,7 +98,8 @@ export function saveLocalSupporterState(state) {
 
 // Compute supporter tier / category
 export function getSupporterCategory(user = null) {
-  const local = getLocalSupporterState();
+  const verified = getVerifiedSupporter(user);
+  const local = { hasDonated: verified.has_donated, totalDonatedUsd: verified.total_cents / 100 };
   if (!local.hasDonated && (!local.totalDonatedUsd || local.totalDonatedUsd <= 0)) {
     return {
       category: 'Member',
@@ -162,7 +164,9 @@ export async function checkIsIpHalved(ipHash, userId) {
 
 // Evaluate status
 export async function getSupporterStatus(user = null) {
-  const local = getLocalSupporterState();
+  try { await loadDonationStatus(user); } catch { /* Verification errors grant no payment access. */ }
+  const verified = getVerifiedSupporter(user);
+  const local = { ...getLocalSupporterState(), hasDonated: verified.has_donated, totalDonatedUsd: verified.total_cents / 100 };
   const ipHash = await getClientIpHash();
   const userId = user?.id || null;
 
@@ -227,8 +231,6 @@ export async function recordUsageAction(actionType, user = null) {
           map_views_count: local.mapViews,
           search_queries_count: local.searchQueries,
           encouragement_shown: local.encouragementShown,
-          has_donated: local.hasDonated,
-          total_donated_usd: local.totalDonatedUsd,
           last_action_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }, { onConflict: 'user_id,ip_hash' });
@@ -269,7 +271,7 @@ export async function markEncouragementDismissed(user = null) {
 export async function resetPointsWithProfileCompletion(user = null) {
   const local = getLocalSupporterState();
   const currentHardThreshold = local.isIpHalved ? HALVED_THRESHOLDS.HARD : BASE_THRESHOLDS.HARD;
-  const wasGated = !local.hasDonated && local.points >= currentHardThreshold;
+  const wasGated = !getVerifiedSupporter(user).has_donated && local.points >= currentHardThreshold;
 
   // Reset points to 0 for everyone at profile completion
   local.points = 0;
@@ -298,41 +300,4 @@ export async function resetPointsWithProfileCompletion(user = null) {
   }
 
   return await getSupporterStatus(user);
-}
-
-// Record successful donation and unlock permanently
-export async function recordSuccessfulDonation(amountUsd, stripeSessionId = null, user = null) {
-  const local = getLocalSupporterState();
-  local.hasDonated = true;
-  local.totalDonatedUsd = (local.totalDonatedUsd || 0) + Number(amountUsd || 0);
-  saveLocalSupporterState(local);
-
-  const ipHash = await getClientIpHash();
-  const userId = user?.id || null;
-  const userEmail = user?.email || null;
-
-  if (supabase) {
-    try {
-      await supabase.from('donations').insert({
-        user_id: userId,
-        user_email: userEmail,
-        ip_hash: ipHash,
-        stripe_session_id: stripeSessionId,
-        amount_usd: Number(amountUsd || 0),
-        status: 'completed'
-      });
-
-      await supabase.from('user_usage_points').upsert({
-        user_id: userId,
-        ip_hash: ipHash,
-        has_donated: true,
-        total_donated_usd: local.totalDonatedUsd,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'user_id,ip_hash' });
-    } catch (e) {
-      console.error('Error syncing donation to Supabase:', e);
-    }
-  }
-
-  return local;
 }

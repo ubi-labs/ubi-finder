@@ -1,69 +1,34 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@14.14.0?target=deno";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
-
+import { amountToCents, validateReturnOrigin } from '../_shared/payment-policy.js';
+import { adminClient, corsOrigin, donor, failure, HttpError, json, paymentConfig, required } from '../_shared/payments.ts';
+export async function handler(req: Request) {
+  let origin: string | undefined;
   try {
-    const { amount_usd, user_id, user_email, return_url } = await req.json();
-
-    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
-    const origin = return_url || "https://ubifinder.org";
-    const parsedAmount = Math.max(1, Math.round(Number(amount_usd || 5)));
-
-    if (!stripeSecretKey) {
-      // If Stripe secret key not configured in Edge Function, return simulated direct checkout URL
-      return new Response(
-        JSON.stringify({ 
-          mock: true, 
-          url: `${origin}/donate/success?amount=${parsedAmount}&session_id=demo_session_${Date.now()}` 
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
-      );
+    origin = corsOrigin(req);
+    if (req.method === 'OPTIONS') return json({}, 200, origin);
+    if (req.method !== 'POST') throw new HttpError(405, 'Method not allowed.');
+    const { stripe, livemode, origins } = paymentConfig();
+    required('STRIPE_WEBHOOK_SECRET');
+    const body = await req.json();
+    let amount: number, returnOrigin: string;
+    try { amount = amountToCents(body.amount_usd); returnOrigin = validateReturnOrigin(body.return_url, origins); }
+    catch (e) { throw new HttpError(400, (e as Error).message); }
+    const owner = await donor(req, body.guest_token, livemode);
+    const db = adminClient();
+    const { data: checkoutId, error: reserveError } = await db.rpc('reserve_donation_checkout', { p_donor_key: owner.key, p_user_id: owner.userId, p_amount_cents: amount, p_livemode: livemode });
+    if (reserveError) {
+      if (reserveError.message.includes('rate limit')) throw new HttpError(429, 'Too many checkout attempts. Try again later.');
+      throw reserveError;
     }
-
-    const stripe = new Stripe(stripeSecretKey, {
-      apiVersion: "2023-10-16",
-      httpClient: Stripe.createFetchHttpClient(),
-    });
-
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      line_items: [
-        {
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: "UBI Finder Volunteer Community Contribution",
-              description: "Supporting independent open-source research and universal basic income accessibility.",
-            },
-            unit_amount: parsedAmount * 100,
-          },
-          quantity: 1,
-        },
-      ],
-      mode: "payment",
-      customer_email: user_email || undefined,
-      client_reference_id: user_id || undefined,
-      success_url: `${origin}/donate/success?amount=${parsedAmount}&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/Programs`,
-    });
-
-    return new Response(
-      JSON.stringify({ url: session.url, session_id: session.id }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
-    );
-  } catch (err) {
-    return new Response(
-      JSON.stringify({ error: err.message }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
-    );
-  }
-});
+    try {
+      const session = await stripe.checkout.sessions.create({ mode: 'payment', customer_email: owner.email,
+        metadata: { checkout_id: checkoutId }, payment_intent_data: { receipt_email: owner.email, metadata: { checkout_id: checkoutId } },
+        line_items: [{ price_data: { currency: 'usd', unit_amount: amount, product_data: { name: 'UBI Finder community contribution' } }, quantity: 1 }],
+        success_url: `${returnOrigin}/donate/success?session_id={CHECKOUT_SESSION_ID}`, cancel_url: `${returnOrigin}/donate/success?cancelled=1`,
+      }, { idempotencyKey: checkoutId });
+      const { error } = await db.from('donation_checkouts').update({ stripe_session_id: session.id }).eq('id', checkoutId);
+      if (error || !session.url) { await stripe.checkout.sessions.expire(session.id); throw error || new Error('Checkout URL missing'); }
+      return json({ url: session.url, session_id: session.id }, 200, origin);
+    } catch (e) { await db.from('donation_checkouts').update({ status: 'failed' }).eq('id', checkoutId); throw e; }
+  } catch (e) { return failure(e, origin); }
+}
+if (import.meta.main) Deno.serve(handler);

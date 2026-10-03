@@ -1,0 +1,43 @@
+import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+import { createClient } from '@supabase/supabase-js';
+import { getLocalAdminClient } from '../acceptance/support/local-supabase.js';
+const admin = getLocalAdminClient();
+const anon = createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY);
+const guest = `test:guest:${randomUUID().replaceAll('-', '').repeat(2)}`;
+const checked = async (query) => { const result = await query; if (result.error) throw result.error; return result.data; };
+const reserve = (amount) => checked(admin.rpc('reserve_donation_checkout', { p_donor_key: guest, p_user_id: null, p_amount_cents: amount, p_livemode: false }));
+const fulfill = (session, event, amount = 500) => admin.rpc('fulfill_stripe_donation', { p_event_id: event, p_session_id: session, p_payment_intent_id: `pi_${session}`, p_amount_cents: amount, p_livemode: false, p_receipt_url: 'https://pay.stripe.com/receipts/fixture' });
+const sessions = [];
+try {
+  const id = await reserve(500);
+  const session = `cs_test_${randomUUID().replaceAll('-', '')}`;
+  sessions.push(session);
+  await checked(admin.from('donation_checkouts').update({ stripe_session_id: session }).eq('id', id));
+  const results = await Promise.all(Array.from({ length: 12 }, (_, i) => fulfill(session, `evt_${session}_${i % 3}`)));
+  assert.equal(results.filter((r) => r.data === true).length, 1);
+  for (const result of results) assert.equal(result.error, null);
+  assert.equal((await checked(admin.from('supporter_accounts').select('total_cents').eq('donor_key', guest).single())).total_cents, 500);
+  assert.equal((await checked(admin.from('donations').select('*').eq('stripe_session_id', session))).length, 1);
+  const secondId = await reserve(1000);
+  const secondSession = `cs_test_${randomUUID().replaceAll('-', '')}`;
+  sessions.push(secondSession);
+  await checked(admin.from('donation_checkouts').update({ stripe_session_id: secondSession }).eq('id', secondId));
+  assert.ok((await fulfill(secondSession, `evt_bad_${secondSession}`, 500)).error);
+  assert.equal((await checked(admin.from('stripe_payment_events').select('*').eq('event_id', `evt_bad_${secondSession}`))).length, 0);
+  assert.equal((await fulfill(secondSession, `evt_good_${secondSession}`, 1000)).data, true);
+  assert.equal((await checked(admin.from('supporter_accounts').select('total_cents').eq('donor_key', guest).single())).total_cents, 1500);
+  assert.ok((await anon.rpc('fulfill_stripe_donation', { p_event_id: 'forged', p_session_id: session, p_payment_intent_id: 'pi_forged', p_amount_cents: 500, p_livemode: false, p_receipt_url: null })).error);
+  assert.ok((await anon.from('donations').insert({ amount_usd: 999, status: 'completed' })).error);
+  assert.ok((await anon.from('user_usage_points').insert({ ip_hash: 'forged', has_donated: true, total_donated_usd: 999 })).error);
+  assert.ok((await anon.from('supporter_accounts').select('*')).error);
+  const usage = await checked(admin.from('user_usage_points').select('has_donated,total_donated_usd').eq('ip_hash', guest).single());
+  assert.deepEqual(usage, { has_donated: true, total_donated_usd: 15 });
+  console.log('PASS: concurrent/replayed fulfillment, rollback, cumulative totals, receipt and browser privilege boundaries');
+} finally {
+  await checked(admin.from('stripe_payment_events').delete().in('checkout_id', (await checked(admin.from('donation_checkouts').select('id').eq('donor_key', guest))).map((r) => r.id)));
+  await checked(admin.from('donations').delete().in('stripe_session_id', sessions));
+  await checked(admin.from('donation_checkouts').delete().eq('donor_key', guest));
+  await checked(admin.from('supporter_accounts').delete().eq('donor_key', guest));
+  await checked(admin.from('user_usage_points').delete().eq('ip_hash', guest));
+}

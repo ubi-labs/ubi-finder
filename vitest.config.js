@@ -24,6 +24,9 @@ export default defineConfig({
         "src/lib/matchDeltaService.js",
         "src/lib/programStatus.js",
         "src/lib/utils.js",
+        "src/lib/donationStatus.js",
+        "src/lib/stripe.js",
+        "supabase/functions/_shared/payment-policy.js",
       ],
       exclude: ["tests/**"],
       thresholds: {

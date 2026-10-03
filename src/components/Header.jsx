@@ -30,6 +30,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import UserForm from "@/components/UserForm";
 import { getUserNotifications, markNotificationsAsRead } from "@/lib/matchDeltaService";
+import { loadDonationStatus } from "@/lib/donationStatus";
 import { getSupporterCategory } from "@/lib/supporterPoints";
 
 export default function Header() {
@@ -58,6 +59,7 @@ export default function Header() {
       setSupporterInfo(getSupporterCategory(user));
     };
     updateTier();
+    loadDonationStatus(user).catch(() => {});
     window.addEventListener('ubi_supporter_state_changed', updateTier);
     return () => window.removeEventListener('ubi_supporter_state_changed', updateTier);
   }, [user, location]);
