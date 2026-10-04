@@ -42,3 +42,21 @@ Issue: https://github.com/ubi-labs/ubi-finder/issues/19
 Summary: Recorded green implementation CI and seven browser scenarios, direct hosted migration deployment, hosted SQL lint success, draft PR #39, and the separate CI-token/secret-write limitations. All three Edge Functions and migration 00039 are deployed. Stripe sandbox webhook destination configured; actual payment remains gated on manual Supabase Stripe secrets. Main frontend remains unchanged.
 Validation: Documentation-only change; retained implementation validation above, `git diff --check` passed. No additional application test run required for evidence-only prose.
 Follow-ups: Manual secrets, exact sandbox preview origin allowance, actual sandbox Checkout/replay/receipt verification, reviewed main frontend publication, restored deployment token, then separately authorized live activation/transaction.
+
+
+## 2026-10-04T01:43:18Z — fix deployment CI and diagnose absent review
+
+Agent: Codex
+Branch: `codex/19-stripe-donations`
+Pre-commit HEAD: `68b883b154fea0c5d913914e53b1f89cd8903088`
+Issue: https://github.com/ubi-labs/ubi-finder/issues/19
+PR: https://github.com/ubi-labs/ubi-finder/pull/39
+
+Summary:
+- Current PR quality/database/Vercel checks were already green. Separate deployment run 37159865795 failed at linking with Unauthorized Supabase access token.
+- Validated the working Supabase CLI Keychain credential against exact linked project `oinubdnkqnifeaaejmjl`, refreshed the existing Production GitHub secret through encrypted stdin without exposing its value, and reran the failed job.
+- Attempt 2 passed project linking, migrations and all Edge Function deployments. Existing database password required no change. No application/workflow code change needed.
+- Read-only Codex settings inspection: personal Automatic review enabled, Review trigger On PR open. PR opened as draft and became ready at 2026-10-03T22:59:45Z. No manual review request, bot reaction or review exists. Repository connection lookup failed twice with Unable to load GitHub connections, so repository review enablement and exact auto-trigger cause remain unverified. Draft opening is a plausible explanation, not a confirmed root cause. Review preferences were not changed and no review comment sent.
+
+Validation: Deployment attempt 2 success verified from job steps; current implementation PR checks all passed. `git diff --check` passed; documentation-only update requires no repeated application tests.
+Follow-ups: Verify repository-level automatic review configuration when GitHub connections load; a single explicit `@codex review` comment can test manual triggering if requested. Continue existing sandbox payment activation after secrets are configured.
