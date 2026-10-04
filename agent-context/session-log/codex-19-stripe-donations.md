@@ -60,3 +60,15 @@ Summary:
 
 Validation: Deployment attempt 2 success verified from job steps; current implementation PR checks all passed. `git diff --check` passed; documentation-only update requires no repeated application tests.
 Follow-ups: Verify repository-level automatic review configuration when GitHub connections load; a single explicit `@codex review` comment can test manual triggering if requested. Continue existing sandbox payment activation after secrets are configured.
+
+## 2026-10-04 — deployed sandbox Checkout verification
+
+Agent: Codex
+Branch: `codex/19-stripe-donations`
+Pre-commit HEAD: `04bdab6329a4c1fd4961cb45da53641d660d6e49`
+Issue: https://github.com/ubi-labs/ubi-finder/issues/19
+
+Summary: Verified manually configured secrets by hashes without logging credentials. Completed an actual $5 USD sandbox payment in Stripe-hosted Checkout. Automatic fulfillment returned completed status, 500 cents, Supporter and a receipt URL. Two concurrent signed replays of the actual completion event returned HTTP200 without increasing the total. No live charge. Preserved unrelated untracked main session log.
+
+Validation: Unsigned webhook HTTP400; signed configuration probe HTTP200; initial pending total zero; Stripe session complete/paid/livemode false; server completed total 500 cents; replay total unchanged. Receipt URL available; email delivery and direct hosted ledger row counts not independently checked. Documentation-only change: diff whitespace check; application tests not repeated (previous CI green).
+Follow-ups: Review/publish PR #39 frontend; main currently serves old donation UI. Separately confirm production account/environment and obtain explicit authorization before any live transaction.
