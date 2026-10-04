@@ -88,6 +88,8 @@ test('homepage preset donation redirects to the Stripe-hosted URL', async ({ pag
     return route.fulfill({ json: { url: 'https://checkout.stripe.com/c/pay/homepage-fixture' } });
   });
   await page.goto('/');
+  for (const value of [5, 20, 100, 500]) await expect(page.locator(`label[for="amount-${value}"]`)).toBeVisible();
+  await expect(page.locator('label[for="amount-1000"]')).toHaveCount(0);
   await page.locator('label[for="amount-20"]').click();
   await page.getByRole('button', { name: 'Donate $20 USD via Stripe', exact: true }).click();
   await page.getByRole('button', { name: 'Continue as guest without credits' }).click();
@@ -131,7 +133,6 @@ test('guest sign-in prompt is prominent and private name is passed with explicit
     return route.fulfill({ status: 503, json: {} });
   });
   await page.goto('/');
-  await expect(page.getByRole('link', { name: 'Log in to receive donor credits' })).toHaveAttribute('href', '/login?redirectTo=%2F%23support-this-project');
   await page.getByLabel('Your name (optional, confidential)', { exact: true }).fill('Private Supporter');
   await expect(page.getByRole('checkbox', { name: /publicly name me/ })).not.toBeChecked();
   await page.getByRole('button', { name: 'Donate $100 USD via Stripe', exact: true }).click();
@@ -139,7 +140,12 @@ test('guest sign-in prompt is prominent and private name is passed with explicit
   await page.getByRole('button', { name: 'Continue as guest without credits' }).click();
   await expect(page.getByRole('alert')).toContainText('No payment was taken');
   expect(body).toMatchObject({ donor_name: 'Private Supporter', public_recognition: false });
-  await page.getByRole('dialog').getByRole('checkbox', { name: /publicly name me/ }).check();
+  await expect(page.getByRole('dialog').getByRole('textbox')).toHaveCount(0);
+  await expect(page.getByRole('dialog').getByRole('checkbox')).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Log in to receive donor credits' })).toHaveAttribute('href', '/login?redirectTo=%2F%23support-this-project');
+  await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click();
+  await page.getByRole('checkbox', { name: /publicly name me/ }).check();
+  await page.getByRole('button', { name: 'Donate $100 USD via Stripe', exact: true }).click();
   await page.getByRole('button', { name: 'Continue as guest without credits' }).click();
   await expect.poll(() => body?.public_recognition).toBe(true);
 });
@@ -152,10 +158,11 @@ test('crypto references are validated and consent saved while review remains pen
     return route.fulfill({ json: { donation_id: 'fixture', status: 'pending_review', account_credit_eligible: false } });
   });
   await page.goto('/');
+  await page.getByLabel('Your name (optional, confidential)', { exact: true }).fill('Crypto Supporter');
+  await page.getByRole('checkbox', { name: /publicly name me/ }).check();
   await page.getByRole('button', { name: 'Donate crypto instead', exact: true }).click();
   const dialog = page.getByRole('dialog');
-  await dialog.getByLabel('Your name (optional, confidential)', { exact: true }).fill('Crypto Supporter');
-  await dialog.getByRole('checkbox', { name: /publicly name me/ }).check();
+
   await dialog.getByLabel('Transaction hash or explorer link').fill('https://evil.test/tx/0x' + 'a'.repeat(64));
   await page.getByRole('button', { name: 'I have transferred crypto' }).click();
   await expect(page.getByRole('alert')).toContainText('selected network');
@@ -180,6 +187,7 @@ test('prominent login returns to donating and signed-in Checkout offers account 
   await paymentResponse(page, null);
   await page.route('**/functions/v1/create-stripe-checkout', (route) => route.fulfill({ status: 503, json: {} }));
   await page.goto('/');
+  await page.getByRole('button', { name: 'Donate $100 USD via Stripe', exact: true }).click();
   await page.getByRole('link', { name: 'Log in to receive donor credits', exact: true }).click();
   await expect(page).toHaveURL(/\/login\?redirectTo=/);
   await page.getByLabel('Email address').fill(acceptanceUser.email);
@@ -188,6 +196,7 @@ test('prominent login returns to donating and signed-in Checkout offers account 
   await expect(page).toHaveURL(/\/#support-this-project$/);
   await expect(page.getByRole('link', { name: 'Log in to receive donor credits', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Donate $100 USD via Stripe', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Continue to secure checkout', exact: true })).toBeVisible();
+  await expect(page.getByText('Checkout is unavailable. No payment was taken. Please try again.', { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Continue as guest without credits' })).toHaveCount(0);
 });

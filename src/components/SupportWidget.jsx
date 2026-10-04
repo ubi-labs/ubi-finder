@@ -9,7 +9,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/lib/AuthContext";
 import DonationDetailsFields from "@/components/DonationDetailsFields";
 import DonationSignInPrompt from "@/components/DonationSignInPrompt";
-import { submitCryptoDonation } from "@/lib/stripe";
+import { initiateStripeCheckout, submitCryptoDonation } from "@/lib/stripe";
 import { validateDonorDetails } from "../../supabase/functions/_shared/donor-details.js";
 import confetti from "canvas-confetti";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -39,6 +39,7 @@ export default function SupportWidget() {
       validateDonorDetails(donorDetails.donor_name, donorDetails.public_recognition);
       setCheckoutAmount(cents / 100);
       if (crypto) { setCryptoError(""); setIsCryptoOpen(true); }
+      else if (user) await initiateStripeCheckout({ amountUsd: cents / 100, user, donorDetails });
       else setIsModalOpen(true);
     } catch (error) {
       toast({ title: "Unable to start donation", description: error.message, variant: "destructive" });
@@ -83,7 +84,6 @@ export default function SupportWidget() {
         </CardHeader>
 
         <CardContent className="space-y-5 px-6 sm:px-8">
-          {!isLoadingAuth && !user && <DonationSignInPrompt />}
           <form onSubmit={(event) => handleOpenDonate(event)} className="space-y-4">
             
             {/* Preset Amount Grid */}
@@ -99,7 +99,7 @@ export default function SupportWidget() {
                 }}
                 className="grid grid-cols-2 sm:grid-cols-4 gap-2.5"
               >
-                {["20", "100", "500", "1000"].map((preset) => {
+                {["5", "20", "100", "500"].map((preset) => {
                   const isChecked = !customAmount && amount === preset;
                   return (
                     <Label
@@ -146,7 +146,7 @@ export default function SupportWidget() {
 
             <DonationDetailsFields value={donorDetails} onChange={setDonorDetails} idPrefix="homepage-donor" />
 
-            <p className="text-xs text-gray-600">Pay securely through Stripe. Enter your email and payment details at Checkout.</p>
+
 
             <Button
               type="submit"
@@ -178,7 +178,6 @@ export default function SupportWidget() {
           <DialogDescription>Send ETH, USDC, or G$ to <strong>ubifinder.eth</strong> (Ethereum / EVM / Celo). Your selected contribution is ${checkoutAmount.toFixed(2)} USD.</DialogDescription>
           <p className="text-sm text-gray-600">This uses the honor system. Submit only after sending your transfer. We’ll manually confirm your transaction and give account credit within a week for signed-in donors. Self-confirmation does not grant credits immediately.</p>
           {!user && <DonationSignInPrompt />}
-          <DonationDetailsFields value={donorDetails} onChange={setDonorDetails} idPrefix="crypto-donor" />
           <div className="space-y-1.5">
             <Label htmlFor="crypto-chain">Transaction network</Label>
             <select id="crypto-chain" value={cryptoChain} onChange={(e) => setCryptoChain(e.target.value)} className="w-full rounded-md border p-2"><option value="ethereum">Ethereum</option><option value="celo">Celo</option></select>
@@ -196,7 +195,6 @@ export default function SupportWidget() {
         amountUsd={checkoutAmount}
         user={user}
         donorDetails={donorDetails}
-        onDonorDetailsChange={setDonorDetails}
       />
     </>
   );

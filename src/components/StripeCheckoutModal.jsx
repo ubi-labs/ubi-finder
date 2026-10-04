@@ -19,15 +19,14 @@ export default function StripeCheckoutModal({ isOpen, onClose, amountUsd = 5, us
   return (
     <Dialog open={isOpen} onOpenChange={() => { if (!isProcessing) { setError(''); onClose(); } }}>
       <DialogContent className="sm:max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
-        <DialogTitle>Support UBI Finder</DialogTitle>
+        <DialogTitle>{donorDetails && !user ? "Continue without credits?" : "Support UBI Finder"}</DialogTitle>
         <DialogDescription>
-          Contribute ${Number(amountUsd).toFixed(2)} USD. You’ll enter your payment details securely on Stripe.
+          Your donation is ${Number(amountUsd).toFixed(2)} USD.
         </DialogDescription>
-        <p className="text-sm text-gray-600">Signed-in accounts receive credits after payment confirmation.</p>
         {!user && <DonationSignInPrompt />}
-        <DonationDetailsFields idPrefix="stripe-donor" value={details} onChange={changeDetails} />
+        {!donorDetails && <DonationDetailsFields idPrefix="stripe-donor" value={details} onChange={changeDetails} />}
         {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
-        <Button variant={user ? "default" : "outline"} disabled={isProcessing} onClick={checkout}>
+        <Button variant={user ? "default" : "link"} disabled={isProcessing} onClick={checkout}>
           {isProcessing ? 'Opening Stripe…' : user ? 'Continue to secure checkout' : 'Continue as guest without credits'}
         </Button>
       </DialogContent>

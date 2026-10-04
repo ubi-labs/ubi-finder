@@ -143,3 +143,25 @@ Summary: Reproduced user guest Checkout failure in their Chrome preview. Network
 
 Validation: npm run lint, npm run typecheck, npm run test:coverage (98 tests), npm run build, git diff --check passed. Unit regressions cover all three guest/signed-in headers and lookup failure; browser tests assert guest Authorization empty and apikey present. Isolated acceptance and deployed Chrome retry follow push. No charge made; unrelated untracked main session log preserved.
 Follow-ups: Confirm fresh CI and hosted user-visible guest Checkout before completion.
+
+## 2026-10-04T23:01:13.923573+00:00 — deployed guest Checkout verified in user Chrome
+
+Agent: Codex
+Branch: `codex/19-stripe-donations`
+Pre-commit HEAD: `5b6179bb3c80d5fc0a6a5bdd5656ffda7d9ab971`
+Issue: https://github.com/ubi-labs/ubi-finder/issues/19
+
+Summary: Refreshed the user's preview tab and verified guest $100 donation reaches Stripe-hosted UBI-Finder sandbox Checkout. Left user tab open, no payment details entered and no payment made. Screenshot saved outside repository.
+Validation: Final code-head quality and Vercel checks passed. Acceptance run 37241793139 attempt1 failed during runtime startup on mail port60324 already in use; attempt2 passed clean reset/lint/integration and all15 browser scenarios.98 unit tests passed locally/CI.
+Follow-ups: This completion evidence is retained locally in session log; no further application change required. Main publication/live activation remain separate.
+
+## 2026-10-04T23:47:30.739371+00:00 — simplify donation choices and confirmation
+
+Agent: Codex
+Branch: `codex/19-stripe-donations`
+Pre-commit HEAD: `5b6179bb3c80d5fc0a6a5bdd5656ffda7d9ab971`
+Issue: https://github.com/ubi-labs/ubi-finder/issues/19
+
+Summary: Changed homepage presets to5/20/100/500 USD. Collect confidential name/public consent once on homepage for Stripe and crypto; shared standalone supporter dialogs still collect their own details once. Guest confirmation contains amount, one credit warning, prominent login and small guest continuation. Removed repeated homepage payment/login copy; signed-in homepage donors go directly to Stripe. Updated browser regressions for presets, no duplicate modal fields, consent reuse and direct signed-in requests.
+Validation: npm lint, typecheck, coverage (98 tests), build and diff check passed. Isolated browser/DB acceptance and deployed visual check follow push.
+Follow-ups: Verify final preview and CI. Main/live activation remain separate.
