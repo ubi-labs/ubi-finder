@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { amountToCents, paymentOrigins, supporterTier, validatePaidSession, validateReturnOrigin } from '../../supabase/functions/_shared/payment-policy.js';
-const invoke = vi.hoisted(() => vi.fn());
-vi.mock('@/lib/supabaseClient', () => ({ supabase: { functions: { invoke } } }));
+const { invoke, getSession } = vi.hoisted(() => ({ invoke: vi.fn(), getSession: vi.fn() }));
+vi.mock('@/lib/supabaseClient', () => ({ supabase: { functions: { invoke }, auth: { getSession } } }));
 import { getDonationGuestToken, getVerifiedSupporter, loadDonationStatus } from '@/lib/donationStatus';
 import { validateDonorDetails, validateCryptoTransaction } from '../../supabase/functions/_shared/donor-details.js';
 import { initiateStripeCheckout, submitCryptoDonation } from '@/lib/stripe';
@@ -9,6 +9,7 @@ import { getSupporterCategory } from '@/lib/supporterPoints';
 
 beforeEach(() => {
   invoke.mockReset();
+  getSession.mockReset().mockResolvedValue({ data: { session: null }, error: null });
   const storage = new Map();
   vi.stubGlobal('localStorage', { getItem: (k) => storage.get(k) ?? null, setItem: (k, v) => storage.set(k, v) });
   vi.stubGlobal('window', { location: { origin: 'https://ubifinder.org', assign: vi.fn() }, dispatchEvent: vi.fn() });
@@ -145,5 +146,25 @@ describe('sandbox preview origin boundary', () => {
     expect(paymentOrigins('test', ' https://custom.example ')).toEqual(['https://custom.example']);
     expect(paymentOrigins('test', '')).toEqual([]);
     expect(() => paymentOrigins('unknown')).toThrow();
+  });
+});
+
+
+describe('donation request authentication', () => {
+  it.each([null, { access_token: 'verified-user-jwt' }])('sends only actual session JWTs across donation functions: %j', async (session) => {
+    getSession.mockResolvedValue({ data: { session }, error: null });
+    invoke.mockResolvedValueOnce({ data: { url: 'https://checkout.stripe.com/c/pay/cs_test_fixture' } });
+    await initiateStripeCheckout({ amountUsd: 5 });
+    invoke.mockResolvedValueOnce({ data: { donation_id: 'one', status: 'pending_review' } });
+    await submitCryptoDonation({ amountUsd: 5, donorDetails: {}, chain: 'ethereum', transactionReference: '0x' + 'a'.repeat(64) });
+    invoke.mockResolvedValueOnce({ data: { user_id: null, total_cents: 0 } });
+    await loadDonationStatus(null, null, true);
+    for (const [, options] of invoke.mock.calls) expect(options.headers).toEqual({ Authorization: session ? 'Bearer verified-user-jwt' : '' });
+  });
+  it('fails closed before Checkout if session lookup fails', async () => {
+    getSession.mockResolvedValue({ error: new Error('session unavailable') });
+    await expect(initiateStripeCheckout({ amountUsd: 5 })).rejects.toThrow('sign-in session');
+    expect(invoke).not.toHaveBeenCalled();
+    expect(window.location.assign).not.toHaveBeenCalled();
   });
 });

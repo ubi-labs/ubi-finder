@@ -83,6 +83,8 @@ test('homepage preset donation redirects to the Stripe-hosted URL', async ({ pag
   await page.route('https://checkout.stripe.com/c/pay/homepage-fixture', (route) => route.fulfill({ contentType: 'text/html', body: '<h1>Stripe checkout fixture</h1>' }));
   await page.route('**/functions/v1/create-stripe-checkout', (route) => {
     expect(route.request().postDataJSON().amount_usd).toBe(20);
+    expect(route.request().headers().authorization || '').toBe('');
+    expect(route.request().headers().apikey).toBeTruthy();
     return route.fulfill({ json: { url: 'https://checkout.stripe.com/c/pay/homepage-fixture' } });
   });
   await page.goto('/');
@@ -99,6 +101,8 @@ test('crypto alternative celebrates only after recording explicit self-confirmat
   let recorded;
   await page.route('**/functions/v1/submit-crypto-donation', (route) => {
     recorded = route.request().postDataJSON();
+    expect(route.request().headers().authorization || '').toBe('');
+    expect(route.request().headers().apikey).toBeTruthy();
     return route.fulfill({ status: fail ? 503 : 201, json: fail ? { message: 'unavailable' } : { donation_id: 'fixture', status: 'pending_review', account_credit_eligible: false } });
   });
   await page.goto('/');

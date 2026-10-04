@@ -3,6 +3,12 @@ import { supporterTier } from '../../supabase/functions/_shared/payment-policy.j
 
 const TOKEN_KEY = 'ubi_donation_guest_token';
 const verified = new Map();
+// Edge Functions validate user JWTs themselves. A legacy public API key is not a user JWT.
+export async function donationRequestHeaders() {
+  const { data, error } = await supabase.auth.getSession();
+  if (error) throw new Error('Could not verify your sign-in session. Please try again.');
+  return { Authorization: data?.session?.access_token ? `Bearer ${data.session.access_token}` : '' };
+}
 export function getDonationGuestToken() {
   let token = localStorage.getItem(TOKEN_KEY);
   if (!token || !/^[a-f0-9]{64}$/.test(token)) {
@@ -21,6 +27,7 @@ export async function loadDonationStatus(user = null, sessionId = null, force = 
   const cached = verified.get(key);
   if (!sessionId && !force && cached && Date.now() - cached.at < 15000) return cached.status;
   const { data, error } = await supabase.functions.invoke('donation-status', {
+    headers: await donationRequestHeaders(),
     body: { guest_token: getDonationGuestToken(), session_id: sessionId },
   });
   if (error || !data || !Number.isSafeInteger(data.total_cents) || data.total_cents < 0 || data.user_id !== (user?.id || null)) {

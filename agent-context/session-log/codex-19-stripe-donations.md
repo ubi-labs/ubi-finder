@@ -131,3 +131,15 @@ Summary: Added the exact existing donation preview origin to sandbox defaults. L
 
 Validation: npm lint, typecheck, coverage (95 unit tests), build; 15 Deno tests; exact sandbox/live/override/forged-origin regression coverage passed. Hosted OPTIONS for all three functions accepted the exact preview and rejected an unrelated origin. Hosted preview Checkout created with private donor metadata and crypto submission saved pending review without guest credits. Expired the unpaid synthetic Checkout and removed all fixture records. No payment made. Fresh isolated acceptance CI follows push.
 Follow-ups: Review and publish frontend through PR; assign daily human crypto review operator; live activation remains separate.
+
+## 2026-10-04T22:54:28.769540+00:00 — guest public key incorrectly treated as user JWT
+
+Agent: Codex
+Branch: `codex/19-stripe-donations`
+Pre-commit HEAD: `9499b5d0fa0131fbeb2dc2580fc2dfaf0baf8033`
+Issue: https://github.com/ubi-labs/ubi-finder/issues/19
+
+Summary: Reproduced user guest Checkout failure in their Chrome preview. Network response HTTP401 was handler error "Please sign in again." SDK supplied its legacy anonymous API key as Authorization; it differs from runtime's injected anonymous key, so handler attempted user JWT validation. Payment calls now explicitly send only a real local sign-in session token, or empty Authorization for guests; the SDK retains apikey and strong guest capability. Actual invalid user tokens remain fail-closed in server handler. Applied consistently to Checkout/status/crypto. Earlier direct hosted probes omitted SDK headers and missed this transport boundary.
+
+Validation: npm run lint, npm run typecheck, npm run test:coverage (98 tests), npm run build, git diff --check passed. Unit regressions cover all three guest/signed-in headers and lookup failure; browser tests assert guest Authorization empty and apikey present. Isolated acceptance and deployed Chrome retry follow push. No charge made; unrelated untracked main session log preserved.
+Follow-ups: Confirm fresh CI and hosted user-visible guest Checkout before completion.
