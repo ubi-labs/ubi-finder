@@ -107,3 +107,15 @@ Summary: Added optional confidential names and explicit, default-off future publ
 
 Validation: npm run lint, npm run typecheck, npm run test:coverage (92 tests; 99.71% statements, 90.52% branches), npm run build, Deno handler tests (14), and git diff --check passed. Local CUA verified private name, consent, prominent login and crypto reference form; screenshot saved outside repository. Isolated CI reset/error-level SQL lint, extended atomic/private/manual-credit integration and 15 browser scenarios follow push; no shared Mac Supabase operated.
 Follow-ups: Verify isolated schema/database/browser validation before hosted migration and function deployment; verify preview deployment. Existing preview origin configuration requires a privileged account. Reviewers must operate the pending crypto queue daily to meet the seven-day donor promise; main publication and real live payment remain pending.
+
+## 2026-10-04T21:39:29.982432+00:00 — hosted donor records and crypto review verified
+
+Agent: Codex
+Branch: `codex/19-stripe-donations`
+Pre-commit HEAD: `e5084cff82a65dc63d40536f97af1f9b83fde7d6`
+Issue: https://github.com/ubi-labs/ubi-finder/issues/19
+
+Summary: All implementation checks green, including 15 browser scenarios and expanded database tests (run 37236222792). Applied only migration 00040 after linked-project/dry-run verification; deployed updated Checkout/status and new crypto-submission function. Hosted lint/introspection confirmed schema and service-only review permissions. Hosted crypto fixture persisted private name, consent and canonical reference with seven-day deadline; no immediate credit and duplicate HTTP409. Removed synthetic row/account; confirmed cleanup. Existing completed sandbox guest payment retains receipt with zero account credits. Preview deployment passed; main unchanged.
+
+Validation: Quality CI and Vercel passed at e5084cf. Hosted error-level SQL lint no errors. Real HTTP crypto save/duplicate and SQL metadata/permission checks passed. First Management API probe assumed HTTP200 for SQL and stopped on successful HTTP201; corrected to accept 2xx, verified prior fixture cleanup and repeated full bounded probe successfully. No live payment, crypto transfer or hosted manual credit. Documentation-only diff check; application validations not repeated.
+Follow-ups: Add exact preview origin using a privileged Supabase account (STRIPE_ALLOWED_ORIGINS remains absent); assign human operator for daily seven-day review queue; review/publish main frontend and separately authorize live activation.
