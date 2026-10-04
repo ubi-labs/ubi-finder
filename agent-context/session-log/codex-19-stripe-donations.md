@@ -84,3 +84,14 @@ Summary: Fixed missed homepage SupportWidget entry point. Stripe Checkout is the
 
 Validation: npm run lint, npm run typecheck, npm run test:coverage (87 tests), npm run build and git diff --check passed. CUA local browser verified main Stripe dialog and separate crypto instructions; panel screenshot saved outside repository. Four new browser scenarios cover custom amounts/errors, fractional cents, hosted redirect and crypto error/success celebration; delayed-confirmation scenario now checks animation timing. Full acceptance validation is delegated to the existing isolated GitHub Actions runtime (no shared Mac Supabase operated) and is pending push at this commit.
 Follow-ups: Verify fresh acceptance CI and Vercel deployment. Add exact preview origin to STRIPE_ALLOWED_ORIGINS manually: CLI secret writes remain forbidden by account privileges. Main frontend publication and live activation remain separate.
+
+## 2026-10-04T05:06:02.829510+00:00 — acceptance selector repair
+
+Agent: Codex
+Branch: `codex/19-stripe-donations`
+Pre-commit HEAD: `170f4dbdd951fd594fa3ddda7f3c0699d2d20a21`
+Issue: https://github.com/ubi-labs/ubi-finder/issues/19
+
+Summary: CI run 37178723273 passed clean reset, SQL lint and atomic donation/privilege tests. Ten browser scenarios passed, including homepage hosted redirect, failure behavior, crypto self-confirmation and celebration timing. Fractional-cent rejection worked, but the test substring matched both visible toast and accessibility announcement. Changed it to an exact visible text match. No product behavior changed.
+Validation: Failure log confirms strict-mode duplicate selector; git diff --check passed. Existing quality CI passed at 170f4db. Full isolated acceptance rerun follows push; application tests not repeated for a selector-only repair.
+Follow-ups: Confirm all 11 browser scenarios and exact latest-head CI pass. Preview return origin still needs manual secret configuration.

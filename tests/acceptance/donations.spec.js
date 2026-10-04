@@ -71,7 +71,7 @@ test('homepage custom donation rejects fractional cents before checkout', async 
   await page.goto('/');
   await page.getByLabel('Or enter a custom amount').fill('1.001');
   await page.getByRole('button', { name: 'Donate $1.001 USD via Stripe', exact: true }).click();
-  await expect(page.getByText('Enter an amount with at most two decimal places.')).toBeVisible();
+  await expect(page.getByText('Enter an amount with at most two decimal places.', { exact: true })).toBeVisible();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(checkoutRequests).toBe(0);
 });
