@@ -5,6 +5,9 @@ on:
     branches: [main]
     paths:
       - "supabase/**"
+      - "src/**"
+      - "tests/acceptance/**"
+      - "playwright.config.js"
       - ".github/workflows/supabase-validate.yml"
       - ".github/workflows/supabase-migration.yml"
 

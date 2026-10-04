@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { loadDonationStatus } from '@/lib/donationStatus';
+import confetti from 'canvas-confetti';
 import { Button } from '@/components/ui/button';
 
 export default function DonateSuccess() {
@@ -30,6 +31,12 @@ export default function DonateSuccess() {
     return () => { stopped = true; clearTimeout(timer); };
   }, [sessionId, cancelled, user?.id, isLoadingAuth, attempt]);
   const completed = result?.payment?.status === 'completed';
+  const celebratedSession = useRef(null);
+  useEffect(() => {
+    if (!completed || cancelled || celebratedSession.current === sessionId) return;
+    celebratedSession.current = sessionId;
+    confetti({ particleCount: 120, spread: 90, origin: { y: 0.6 }, disableForReducedMotion: true });
+  }, [completed, cancelled, sessionId]);
   const failed = ['failed', 'expired'].includes(result?.payment?.status);
   let receipt = null;
   try {

@@ -2,7 +2,7 @@
 
 Issue: https://github.com/ubi-labs/ubi-finder/issues/19
 
-One-time USD contributions use Stripe-hosted Checkout. The browser never collects card details or writes donations. It supplies an amount, an exact allowed return origin, and a random guest capability. Signed-in ownership comes from the verified Supabase JWT, never request-body user IDs. Amounts must be $1–$10,000 with at most two decimal places.
+The homepage “Support This Project” panel and supporter-gate dialogs use the same Stripe Checkout modal. Stripe is the default; a small crypto alternative records explicitly self-reported transfers in the legacy pledge table without granting verified paid access. Interac/bank instructions are removed. Celebration runs only after server-confirmed Stripe completion or successful recording of a crypto self-confirmation. One-time USD contributions use Stripe-hosted Checkout. The browser never collects card details or writes verified donations. It supplies an amount, an exact allowed return origin, and a random guest capability. Signed-in ownership comes from the verified Supabase JWT, never request-body user IDs. Amounts must be $1–$10,000 with at most two decimal places.
 
 `create-stripe-checkout` reserves a server-owned checkout, creates a Stripe session with an idempotency key, and returns its hosted URL. Misconfiguration and provider failures return errors. Ten attempts per donor per hour are allowed; this is a donor-level limit, not an IP-level abuse prevention service.
 

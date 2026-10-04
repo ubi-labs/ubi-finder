@@ -72,3 +72,15 @@ Summary: Verified manually configured secrets by hashes without logging credenti
 
 Validation: Unsigned webhook HTTP400; signed configuration probe HTTP200; initial pending total zero; Stripe session complete/paid/livemode false; server completed total 500 cents; replay total unchanged. Receipt URL available; email delivery and direct hosted ledger row counts not independently checked. Documentation-only change: diff whitespace check; application tests not repeated (previous CI green).
 Follow-ups: Review/publish PR #39 frontend; main currently serves old donation UI. Separately confirm production account/environment and obtain explicit authorization before any live transaction.
+
+## 2026-10-04T05:02:05.363509+00:00 — homepage Stripe default and crypto alternative
+
+Agent: Codex
+Branch: `codex/19-stripe-donations`
+Pre-commit HEAD: `e0512f992955dd50073e0e245842213b6e4d1f30`
+Issue: https://github.com/ubi-labs/ubi-finder/issues/19
+
+Summary: Fixed missed homepage SupportWidget entry point. Stripe Checkout is the default; Interac/bank removed; small crypto link retains explicit honor-system confirmation and records only an unverified pledge. Failed pledge inserts now show an error instead of success. Confetti fires only after successful crypto self-confirmation or verified Stripe completion; never on opening a dialog. Preset tier labels use the shared server thresholds. Extended acceptance CI path triggers to frontend and browser tests.
+
+Validation: npm run lint, npm run typecheck, npm run test:coverage (87 tests), npm run build and git diff --check passed. CUA local browser verified main Stripe dialog and separate crypto instructions; panel screenshot saved outside repository. Four new browser scenarios cover custom amounts/errors, fractional cents, hosted redirect and crypto error/success celebration; delayed-confirmation scenario now checks animation timing. Full acceptance validation is delegated to the existing isolated GitHub Actions runtime (no shared Mac Supabase operated) and is pending push at this commit.
+Follow-ups: Verify fresh acceptance CI and Vercel deployment. Add exact preview origin to STRIPE_ALLOWED_ORIGINS manually: CLI secret writes remain forbidden by account privileges. Main frontend publication and live activation remain separate.
