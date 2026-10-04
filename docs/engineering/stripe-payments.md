@@ -19,7 +19,7 @@ Supabase Edge Function secrets:
 - `STRIPE_SECRET_KEY`: server-only `sk_test_…` for sandbox or `sk_live_…` for live.
 - `STRIPE_MODE`: `test` (default), explicitly `live` for activation.
 - `STRIPE_WEBHOOK_SECRET`: endpoint-specific `whsec_…` copied from Stripe Workbench. A CLI forwarding secret is only for that local listener.
-- `STRIPE_ALLOWED_ORIGINS`: comma-separated exact origins. Defaults to `https://ubifinder.org,https://www.ubifinder.org`. Local tests must explicitly add their localhost origin.
+- `STRIPE_ALLOWED_ORIGINS`: comma-separated exact origins. Defaults to the two production origins. Sandbox mode additionally allows only the exact `codex/19-stripe-donations` Vercel branch preview; live mode excludes it. A configured value overrides these defaults, including an empty deny-all value. Local tests must explicitly add their localhost origin.
 
 Supabase provides `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_ANON_KEY` automatically. The publishable Stripe key can remain public; hosted redirect Checkout does not need it in the browser. Never expose secret keys as `VITE_` variables.
 
@@ -85,3 +85,7 @@ The transaction locks the review row and supporter account, writes the verified 
 ### Donor-record and crypto-review deployment — October 4, 2026
 
 Implementation e5084cf passed quality CI and isolated run 37236222792: clean reset/seed, error-level SQL lint, atomic/privacy/manual-review regressions and all 15 browser scenarios. Migration 00040 was applied to the verified linked project `oinubdnkqnifeaaejmjl`, and hosted SQL lint passed. Updated `create-stripe-checkout` and `donation-status`, and new `submit-crypto-donation`, were deployed through API bundling. Hosted introspection confirmed migration/consent columns/review function and denied review execution to guest/authenticated roles while allowing service operators. A synthetic sandbox crypto submission persisted name/consent/canonical hash with a seven-day pending deadline, granted no credit and rejected replay with HTTP409; its row and empty supporter account were removed. No crypto was transferred or credited. The prior completed guest Stripe payment retains its receipt but now returns zero account credits, superseding the earlier browser-guest supporter behavior. Frontend preview deployed; main publication, privileged preview-origin configuration and live activation remain separate.
+
+### Exact sandbox preview allowlist
+
+The current account cannot edit Supabase secrets, but authorized function deployments can configure their own exact sandbox origin defaults. The verified branch preview `https://v0-ubi-finder-git-codex-19-stripe-donations-cubid-team.vercel.app` is allowed only by the test-mode default. No Vercel wildcard, arbitrary preview or live-mode preview allowance was added. `STRIPE_ALLOWED_ORIGINS`, when explicitly set, remains authoritative and overrides all defaults. This replaces the earlier manual-origin prerequisite for the current sandbox preview; live activation still requires the correct account/credentials and separate authorization.

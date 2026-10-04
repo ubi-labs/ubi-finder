@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { amountToCents, supporterTier, validatePaidSession, validateReturnOrigin } from '../../supabase/functions/_shared/payment-policy.js';
+import { amountToCents, paymentOrigins, supporterTier, validatePaidSession, validateReturnOrigin } from '../../supabase/functions/_shared/payment-policy.js';
 const invoke = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/supabaseClient', () => ({ supabase: { functions: { invoke } } }));
 import { getDonationGuestToken, getVerifiedSupporter, loadDonationStatus } from '@/lib/donationStatus';
@@ -126,5 +126,24 @@ describe('private donor records and review submissions', () => {
     await expect(submitCryptoDonation(args)).rejects.toThrow('already been submitted');
     invoke.mockResolvedValueOnce({ data: { donation_id: 'fake', status: 'completed' } });
     await expect(submitCryptoDonation(args)).rejects.toThrow();
+  });
+});
+
+
+describe('sandbox preview origin boundary', () => {
+  const preview = 'https://v0-ubi-finder-git-codex-19-stripe-donations-cubid-team.vercel.app';
+  it('allows only the exact project preview by default in sandbox', () => {
+    expect(paymentOrigins('test')).toContain(preview);
+    expect(() => validateReturnOrigin(preview + '.evil.test', paymentOrigins('test'))).toThrow();
+    expect(() => validateReturnOrigin('https://other-project.vercel.app', paymentOrigins('test'))).toThrow();
+  });
+  it('excludes the sandbox preview in live mode', () => {
+    expect(paymentOrigins('live')).not.toContain(preview);
+    expect(() => validateReturnOrigin(preview, paymentOrigins('live'))).toThrow();
+  });
+  it('respects explicit configuration including an empty fail-closed allowlist', () => {
+    expect(paymentOrigins('test', ' https://custom.example ')).toEqual(['https://custom.example']);
+    expect(paymentOrigins('test', '')).toEqual([]);
+    expect(() => paymentOrigins('unknown')).toThrow();
   });
 });

@@ -1,3 +1,4 @@
+import { paymentOrigins } from './payment-policy.js';
 import Stripe from 'npm:stripe@23.0.0';
 import { createClient } from 'npm:@supabase/supabase-js@2.112.3';
 export class HttpError extends Error {
@@ -12,7 +13,7 @@ export function paymentConfig() {
   const key = required('STRIPE_SECRET_KEY');
   const mode = Deno.env.get('STRIPE_MODE') || 'test';
   if (!['test', 'live'].includes(mode) || !key.startsWith(`sk_${mode}_`)) throw new HttpError(503, 'Payment environment configuration mismatch.');
-  const origins = (Deno.env.get('STRIPE_ALLOWED_ORIGINS') || 'https://ubifinder.org,https://www.ubifinder.org').split(',').map((s) => s.trim()).filter(Boolean);
+  const origins = paymentOrigins(mode, Deno.env.get('STRIPE_ALLOWED_ORIGINS') ?? null);
   return { stripe: new Stripe(key, { httpClient: Stripe.createFetchHttpClient() }), livemode: mode === 'live', origins };
 }
 export function adminClient() {
@@ -42,7 +43,9 @@ export function json(body: unknown, status = 200, origin?: string) {
 export function corsOrigin(req: Request) {
   const origin = req.headers.get('origin');
   if (!origin) return undefined;
-  const origins = (Deno.env.get('STRIPE_ALLOWED_ORIGINS') || 'https://ubifinder.org,https://www.ubifinder.org').split(',').map((s) => s.trim());
+  let origins: string[];
+  try { origins = paymentOrigins(Deno.env.get('STRIPE_MODE') || 'test', Deno.env.get('STRIPE_ALLOWED_ORIGINS') ?? null); }
+  catch { throw new HttpError(503, 'Payment environment configuration mismatch.'); }
   if (!origins.includes(origin)) throw new HttpError(403, 'Origin is not allowed.');
   return origin;
 }

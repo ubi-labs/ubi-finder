@@ -19,3 +19,15 @@ export function validatePaidSession(session, checkout, livemode) {
   if (session.livemode !== livemode || checkout.livemode !== livemode || session.currency !== 'usd' || session.amount_total !== checkout.amount_cents || session.metadata?.checkout_id !== checkout.id || session.id !== checkout.stripe_session_id) throw new Error('Payment does not match checkout.');
   return session.payment_status === 'paid';
 }
+
+/**
+ * @param {string} mode
+ * @param {string | null} [configuredOrigins]
+ */
+export function paymentOrigins(mode, configuredOrigins = null) {
+  if (!['test', 'live'].includes(mode)) throw new Error('Invalid payment environment.');
+  if (configuredOrigins !== null) return configuredOrigins.split(',').map((origin) => origin.trim()).filter(Boolean);
+  const origins = ['https://ubifinder.org', 'https://www.ubifinder.org'];
+  if (mode === 'test') origins.push('https://v0-ubi-finder-git-codex-19-stripe-donations-cubid-team.vercel.app');
+  return origins;
+}

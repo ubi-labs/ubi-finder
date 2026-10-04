@@ -179,3 +179,15 @@ Deno.test('crypto submission duplicate and database failure do not claim success
     assert.equal((await cryptoDonation(new Request('http://localhost', { method: 'POST', body }))).status, expected);
   }
 }));
+
+Deno.test('exact sandbox preview default is allowed and remains excluded in live mode', () => configured(async () => {
+  Deno.env.delete('STRIPE_ALLOWED_ORIGINS');
+  const preview = 'https://v0-ubi-finder-git-codex-19-stripe-donations-cubid-team.vercel.app';
+  const preflight = () => new Request('http://localhost', { method: 'OPTIONS', headers: { origin: preview } });
+  assert.equal((await checkout(preflight())).status, 200);
+  assert.equal((await cryptoDonation(preflight())).status, 200);
+  Deno.env.set('STRIPE_MODE', 'live');
+  Deno.env.set('STRIPE_SECRET_KEY', 'sk_live_fixture');
+  assert.equal((await checkout(preflight())).status, 403);
+  assert.equal((await cryptoDonation(preflight())).status, 403);
+}));

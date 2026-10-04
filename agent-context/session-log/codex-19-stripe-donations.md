@@ -119,3 +119,15 @@ Summary: All implementation checks green, including 15 browser scenarios and exp
 
 Validation: Quality CI and Vercel passed at e5084cf. Hosted error-level SQL lint no errors. Real HTTP crypto save/duplicate and SQL metadata/permission checks passed. First Management API probe assumed HTTP200 for SQL and stopped on successful HTTP201; corrected to accept 2xx, verified prior fixture cleanup and repeated full bounded probe successfully. No live payment, crypto transfer or hosted manual credit. Documentation-only diff check; application validations not repeated.
 Follow-ups: Add exact preview origin using a privileged Supabase account (STRIPE_ALLOWED_ORIGINS remains absent); assign human operator for daily seven-day review queue; review/publish main frontend and separately authorize live activation.
+
+## 2026-10-04T21:53:45.290567+00:00 — exact sandbox preview origin enabled
+
+Agent: Codex
+Branch: `codex/19-stripe-donations`
+Pre-commit HEAD: `4c5f6e758b2fc97bd680b857eae4b77c4fa6dafa`
+Issue: https://github.com/ubi-labs/ubi-finder/issues/19
+
+Summary: Added the exact existing donation preview origin to sandbox defaults. Live defaults retain production origins only; explicit configured origins remain authoritative, including empty deny-all. This resolves the earlier restricted secret-write prerequisite. Deployed Checkout/status/crypto functions and verified hosted preview requests.
+
+Validation: npm lint, typecheck, coverage (95 unit tests), build; 15 Deno tests; exact sandbox/live/override/forged-origin regression coverage passed. Hosted OPTIONS for all three functions accepted the exact preview and rejected an unrelated origin. Hosted preview Checkout created with private donor metadata and crypto submission saved pending review without guest credits. Expired the unpaid synthetic Checkout and removed all fixture records. No payment made. Fresh isolated acceptance CI follows push.
+Follow-ups: Review and publish frontend through PR; assign daily human crypto review operator; live activation remains separate.
