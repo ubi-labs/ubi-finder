@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { acceptanceUser } from './support/local-supabase.js';
 async function paymentResponse(page, payment, total = 0) {
   await page.route('**/functions/v1/donation-status', (route) => route.fulfill({ json: { user_id: null, total_cents: total, payment } }));
 }
@@ -55,7 +56,7 @@ test('homepage support panel opens Stripe checkout and fails closed when checkou
   await page.getByRole('button', { name: 'Donate $12.34 USD via Stripe', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('Contribute $12.34 USD');
   await expect(page.getByRole('button', { name: 'I have eTransferred' })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Continue to secure checkout' }).click();
+  await page.getByRole('button', { name: 'Continue as guest without credits' }).click();
   await expect(page.getByRole('alert')).toContainText('No payment was taken');
   await expect(page.locator('canvas')).toHaveCount(0);
   expect(checkoutBody.amount_usd).toBe(12.34);
@@ -87,7 +88,7 @@ test('homepage preset donation redirects to the Stripe-hosted URL', async ({ pag
   await page.goto('/');
   await page.locator('label[for="amount-20"]').click();
   await page.getByRole('button', { name: 'Donate $20 USD via Stripe', exact: true }).click();
-  await page.getByRole('button', { name: 'Continue to secure checkout' }).click();
+  await page.getByRole('button', { name: 'Continue as guest without credits' }).click();
   await expect(page).toHaveURL('https://checkout.stripe.com/c/pay/homepage-fixture');
 });
 
@@ -96,22 +97,93 @@ test('crypto alternative celebrates only after recording explicit self-confirmat
   await paymentResponse(page, null);
   let fail = true;
   let recorded;
-  await page.route('**/rest/v1/support_donations*', (route) => {
+  await page.route('**/functions/v1/submit-crypto-donation', (route) => {
     recorded = route.request().postDataJSON();
-    return route.fulfill({ status: fail ? 503 : 201, json: fail ? { message: 'unavailable' } : {} });
+    return route.fulfill({ status: fail ? 503 : 201, json: fail ? { message: 'unavailable' } : { donation_id: 'fixture', status: 'pending_review', account_credit_eligible: false } });
   });
   await page.goto('/');
   await page.getByRole('button', { name: 'Donate crypto instead', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('ubifinder.eth');
-  await expect(page.getByRole('dialog')).toContainText('does not grant Stripe-verified supporter access');
+  await expect(page.getByRole('dialog')).toContainText('give account credit within a week');
+  await page.getByRole('dialog').getByLabel('Transaction hash or explorer link').fill('0x' + 'a'.repeat(64));
   await expect(page.getByText('Interac / E-Transfer / Bank')).toHaveCount(0);
   await expect(page.locator('canvas')).toHaveCount(0);
   await page.getByRole('button', { name: 'I have transferred crypto' }).click();
-  await expect(page.getByRole('alert')).toContainText('Unable to record your confirmation');
+  await expect(page.getByRole('alert')).toContainText('Unable to record your transaction');
   await expect(page.locator('canvas')).toHaveCount(0);
   fail = false;
   await page.getByRole('button', { name: 'I have transferred crypto' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.locator('canvas')).toHaveCount(1);
-  expect(recorded).toMatchObject({ amount_usd: 100, payment_method: 'crypto', status: 'pledged' });
+  expect(recorded).toMatchObject({ amount_usd: 100, crypto_chain: 'ethereum', transaction_reference: '0x' + 'a'.repeat(64), public_recognition: false });
+});
+
+
+test('guest sign-in prompt is prominent and private name is passed with explicit recognition consent', async ({ page }) => {
+  await paymentResponse(page, null);
+  let body;
+  await page.route('**/functions/v1/create-stripe-checkout', (route) => {
+    body = route.request().postDataJSON();
+    return route.fulfill({ status: 503, json: {} });
+  });
+  await page.goto('/');
+  await expect(page.getByRole('link', { name: 'Log in to receive donor credits' })).toHaveAttribute('href', '/login?redirectTo=%2F%23support-this-project');
+  await page.getByLabel('Your name (optional, confidential)', { exact: true }).fill('Private Supporter');
+  await expect(page.getByRole('checkbox', { name: /publicly name me/ })).not.toBeChecked();
+  await page.getByRole('button', { name: 'Donate $100 USD via Stripe', exact: true }).click();
+  await expect(page.getByRole('dialog')).toContainText('You won’t receive donation credits unless you log in first.');
+  await page.getByRole('button', { name: 'Continue as guest without credits' }).click();
+  await expect(page.getByRole('alert')).toContainText('No payment was taken');
+  expect(body).toMatchObject({ donor_name: 'Private Supporter', public_recognition: false });
+  await page.getByRole('dialog').getByRole('checkbox', { name: /publicly name me/ }).check();
+  await page.getByRole('button', { name: 'Continue as guest without credits' }).click();
+  await expect.poll(() => body?.public_recognition).toBe(true);
+});
+
+test('crypto references are validated and consent saved while review remains pending', async ({ page }) => {
+  await paymentResponse(page, null);
+  let submitted;
+  await page.route('**/functions/v1/submit-crypto-donation', (route) => {
+    submitted = route.request().postDataJSON();
+    return route.fulfill({ json: { donation_id: 'fixture', status: 'pending_review', account_credit_eligible: false } });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Donate crypto instead', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Your name (optional, confidential)', { exact: true }).fill('Crypto Supporter');
+  await dialog.getByRole('checkbox', { name: /publicly name me/ }).check();
+  await dialog.getByLabel('Transaction hash or explorer link').fill('https://evil.test/tx/0x' + 'a'.repeat(64));
+  await page.getByRole('button', { name: 'I have transferred crypto' }).click();
+  await expect(page.getByRole('alert')).toContainText('selected network');
+  expect(submitted).toBeUndefined();
+  await dialog.getByLabel('Transaction network').selectOption('celo');
+  await dialog.getByLabel('Transaction hash or explorer link').fill('https://celoscan.io/tx/0x' + 'b'.repeat(64));
+  await page.getByRole('button', { name: 'I have transferred crypto' }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByText(/Transaction saved. We’ll manually confirm it within a week/, { exact: false }).first()).toBeVisible();
+  expect(submitted).toMatchObject({ donor_name: 'Crypto Supporter', public_recognition: true, crypto_chain: 'celo' });
+});
+
+test('guest verified payment receipt does not grant account credits', async ({ page }) => {
+  await paymentResponse(page, { status: 'completed', amount_cents: 500, receipt_url: 'https://pay.stripe.com/receipts/fixture' }, 500);
+  await page.goto('/donate/success?session_id=cs_test_guest');
+  await expect(page.getByText('You donated as a guest, so no account credits were granted.', { exact: false })).toBeVisible();
+  await expect(page.getByText('Your supporter access is active.', { exact: false })).toHaveCount(0);
+});
+
+
+test('prominent login returns to donating and signed-in Checkout offers account credit', async ({ page }) => {
+  await paymentResponse(page, null);
+  await page.route('**/functions/v1/create-stripe-checkout', (route) => route.fulfill({ status: 503, json: {} }));
+  await page.goto('/');
+  await page.getByRole('link', { name: 'Log in to receive donor credits', exact: true }).click();
+  await expect(page).toHaveURL(/\/login\?redirectTo=/);
+  await page.getByLabel('Email address').fill(acceptanceUser.email);
+  await page.getByLabel('Password').fill(acceptanceUser.password);
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page).toHaveURL(/\/#support-this-project$/);
+  await expect(page.getByRole('link', { name: 'Log in to receive donor credits', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Donate $100 USD via Stripe', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Continue to secure checkout', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Continue as guest without credits' })).toHaveCount(0);
 });

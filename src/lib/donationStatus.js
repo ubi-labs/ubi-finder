@@ -28,7 +28,8 @@ export async function loadDonationStatus(user = null, sessionId = null, force = 
     window.dispatchEvent(new Event('ubi_supporter_state_changed'));
     throw new Error('Could not verify your donation. Please try again.');
   }
-  const status = { ...data, has_donated: data.total_cents > 0, tier: supporterTier(data.total_cents) };
+  const totalCents = user?.id ? data.total_cents : 0;
+  const status = { ...data, total_cents: totalCents, has_donated: totalCents > 0, tier: supporterTier(totalCents) };
   verified.set(key, { at: Date.now(), status });
   window.dispatchEvent(new Event('ubi_supporter_state_changed'));
   return status;

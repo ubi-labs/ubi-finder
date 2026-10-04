@@ -3,7 +3,8 @@ import { amountToCents, supporterTier, validatePaidSession, validateReturnOrigin
 const invoke = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/supabaseClient', () => ({ supabase: { functions: { invoke } } }));
 import { getDonationGuestToken, getVerifiedSupporter, loadDonationStatus } from '@/lib/donationStatus';
-import { initiateStripeCheckout } from '@/lib/stripe';
+import { validateDonorDetails, validateCryptoTransaction } from '../../supabase/functions/_shared/donor-details.js';
+import { initiateStripeCheckout, submitCryptoDonation } from '@/lib/stripe';
 import { getSupporterCategory } from '@/lib/supporterPoints';
 
 beforeEach(() => {
@@ -82,5 +83,48 @@ describe('browser payment boundary', () => {
     expect(invoke.mock.calls.at(-1)[1].body).toMatchObject({ amount_usd: '5.25', return_url: 'https://ubifinder.org' });
     expect(invoke.mock.calls.at(-1)[1].body).not.toHaveProperty('user_id');
     expect(window.location.assign).toHaveBeenCalledWith('https://checkout.stripe.com/c/pay/cs_test_fixture');
+  });
+});
+
+
+describe('private donor records and review submissions', () => {
+  it('defaults names to confidential and requires a name for public recognition', () => {
+    expect(validateDonorDetails(' Alice ')).toEqual({ donor_name: 'Alice', public_recognition: false });
+    expect(validateDonorDetails(null)).toEqual({ donor_name: null, public_recognition: false });
+    expect(() => validateDonorDetails('', true)).toThrow();
+    for (const name of ['a'.repeat(101), 'a\nname', 42]) expect(() => validateDonorDetails(name)).toThrow();
+    expect(() => validateDonorDetails('Alice', 'true')).toThrow();
+  });
+  it('validates and normalizes references without fetching arbitrary URLs', () => {
+    const hash = '0x' + 'A'.repeat(64);
+    expect(validateCryptoTransaction('ethereum', hash).transaction_hash).toBe(hash.toLowerCase());
+    expect(validateCryptoTransaction('celo', 'https://celoscan.io/tx/' + hash).crypto_chain).toBe('celo');
+    expect(validateCryptoTransaction('celo', 'https://celo.blockscout.com/tx/' + hash).transaction_hash).toBe(hash.toLowerCase());
+    for (const ref of ['0x123', 'https://etherscan.io.evil.test/tx/' + hash, 'https://user@etherscan.io/tx/' + hash, 'https://etherscan.io/tx/' + hash + '?secret=anything', 'javascript:alert(1)']) expect(() => validateCryptoTransaction('ethereum', ref)).toThrow();
+    expect(() => validateCryptoTransaction('celo', 'https://etherscan.io/tx/' + hash)).toThrow();
+    expect(() => validateCryptoTransaction('unknown', hash)).toThrow();
+  });
+  it('guests never receive credits even from a legacy server balance', async () => {
+    invoke.mockResolvedValueOnce({ data: { user_id: null, total_cents: 50000, payment: { status: 'completed' } } });
+    const status = await loadDonationStatus(null, 'cs_test_guest', true);
+    expect(status.total_cents).toBe(0);
+    expect(status.has_donated).toBe(false);
+    expect(status.tier).toBe('Member');
+  });
+  it('submits private details and a transaction for review, never caller identity or credits', async () => {
+    invoke.mockResolvedValueOnce({ data: { donation_id: 'one', status: 'pending_review' } });
+    await submitCryptoDonation({ amountUsd: 5, donorDetails: { donor_name: 'Alice', public_recognition: true }, chain: 'ethereum', transactionReference: '0x' + 'a'.repeat(64) });
+    expect(invoke.mock.calls[0][0]).toBe('submit-crypto-donation');
+    expect(invoke.mock.calls[0][1].body).toMatchObject({ donor_name: 'Alice', public_recognition: true });
+    expect(invoke.mock.calls[0][1].body).not.toHaveProperty('user_id');
+  });
+  it('rejects failed, duplicate, and fabricated confirmation responses', async () => {
+    const args = { amountUsd: 5, donorDetails: {}, chain: 'ethereum', transactionReference: '0x' + 'a'.repeat(64) };
+    invoke.mockResolvedValueOnce({ error: new Error('offline') });
+    await expect(submitCryptoDonation(args)).rejects.toThrow('Unable to record');
+    invoke.mockResolvedValueOnce({ error: { context: { status: 409 } } });
+    await expect(submitCryptoDonation(args)).rejects.toThrow('already been submitted');
+    invoke.mockResolvedValueOnce({ data: { donation_id: 'fake', status: 'completed' } });
+    await expect(submitCryptoDonation(args)).rejects.toThrow();
   });
 });

@@ -419,3 +419,6 @@ verify_jwt = false
 verify_jwt = false
 [functions.donation-status]
 verify_jwt = false
+
+[functions.submit-crypto-donation]
+verify_jwt = false

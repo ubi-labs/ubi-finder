@@ -20,7 +20,7 @@ export async function handler(req: Request) {
     }
     const { data: account, error } = await db.from('supporter_accounts').select('total_cents').eq('donor_key', owner.key).maybeSingle();
     if (error) throw error;
-    const totalCents = Number(account?.total_cents || 0);
+    const totalCents = owner.userId ? Number(account?.total_cents || 0) : 0;
     return json({ user_id: owner.userId, total_cents: totalCents, has_donated: totalCents > 0, tier: supporterTier(totalCents), payment, livemode }, 200, origin);
   } catch (e) { return failure(e, origin); }
 }

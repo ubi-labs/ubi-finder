@@ -95,3 +95,15 @@ Issue: https://github.com/ubi-labs/ubi-finder/issues/19
 Summary: CI run 37178723273 passed clean reset, SQL lint and atomic donation/privilege tests. Ten browser scenarios passed, including homepage hosted redirect, failure behavior, crypto self-confirmation and celebration timing. Fractional-cent rejection worked, but the test substring matched both visible toast and accessibility announcement. Changed it to an exact visible text match. No product behavior changed.
 Validation: Failure log confirms strict-mode duplicate selector; git diff --check passed. Existing quality CI passed at 170f4db. Full isolated acceptance rerun follows push; application tests not repeated for a selector-only repair.
 Follow-ups: Confirm all 11 browser scenarios and exact latest-head CI pass. Preview return origin still needs manual secret configuration.
+
+## 2026-10-04 — confidential donor records, login-first credits, crypto review
+
+Agent: Codex
+Branch: `codex/19-stripe-donations`
+Pre-commit HEAD: `342917d8cc1846f23ca9fe3413f75fb1f3873a85`
+Issue: https://github.com/ubi-labs/ubi-finder/issues/19
+
+Summary: Added optional confidential names and explicit, default-off future public sponsor recognition consent to homepage and shared Stripe/crypto dialogs. Names remain in protected first-party records, not Stripe metadata. Prominent login-first prompt returns to the donation section; guest continuation explicitly receives no account credits. Guest Stripe receipts remain verifiable, but guest entitlements are suppressed server/client and legacy verified guest usage grants cleared. Crypto flow validates/saves canonical network/hash through a new identity-validating Edge Function, with seven-day pending review deadline and donor rate/duplicate guards. Service-only manual confirmation locks records/accounts and atomically credits verified amounts once; signed-in credits combine Stripe and crypto. Operator review/ownership evidence procedure documented; no public leaderboard or automated on-chain verifier added.
+
+Validation: npm run lint, npm run typecheck, npm run test:coverage (92 tests; 99.71% statements, 90.52% branches), npm run build, Deno handler tests (14), and git diff --check passed. Local CUA verified private name, consent, prominent login and crypto reference form; screenshot saved outside repository. Isolated CI reset/error-level SQL lint, extended atomic/private/manual-credit integration and 15 browser scenarios follow push; no shared Mac Supabase operated.
+Follow-ups: Verify isolated schema/database/browser validation before hosted migration and function deployment; verify preview deployment. Existing preview origin configuration requires a privileged account. Reviewers must operate the pending crypto queue daily to meet the seven-day donor promise; main publication and real live payment remain pending.

@@ -301,7 +301,7 @@ export default function Home() {
         </section>
 
         {/* Support This Project Section */}
-        <section className="container mx-auto px-4 py-16">
+        <section id="support-this-project" className="container mx-auto px-4 py-16">
           <div className="max-w-5xl mx-auto">
             <SupportWidget />
           </div>

@@ -1,3 +1,4 @@
+import { validateDonorDetails } from '../_shared/donor-details.js';
 import { amountToCents, validateReturnOrigin } from '../_shared/payment-policy.js';
 import { adminClient, corsOrigin, donor, failure, HttpError, json, paymentConfig, required } from '../_shared/payments.ts';
 export async function handler(req: Request) {
@@ -12,6 +13,9 @@ export async function handler(req: Request) {
     let amount: number, returnOrigin: string;
     try { amount = amountToCents(body.amount_usd); returnOrigin = validateReturnOrigin(body.return_url, origins); }
     catch (e) { throw new HttpError(400, (e as Error).message); }
+    let details;
+    try { details = validateDonorDetails(body.donor_name, body.public_recognition); }
+    catch (e) { throw new HttpError(400, (e as Error).message); }
     const owner = await donor(req, body.guest_token, livemode);
     const db = adminClient();
     const { data: checkoutId, error: reserveError } = await db.rpc('reserve_donation_checkout', { p_donor_key: owner.key, p_user_id: owner.userId, p_amount_cents: amount, p_livemode: livemode });
@@ -25,7 +29,7 @@ export async function handler(req: Request) {
         line_items: [{ price_data: { currency: 'usd', unit_amount: amount, product_data: { name: 'UBI Finder community contribution' } }, quantity: 1 }],
         success_url: `${returnOrigin}/donate/success?session_id={CHECKOUT_SESSION_ID}`, cancel_url: `${returnOrigin}/donate/success?cancelled=1`,
       }, { idempotencyKey: checkoutId });
-      const { error } = await db.from('donation_checkouts').update({ stripe_session_id: session.id }).eq('id', checkoutId);
+      const { error } = await db.from('donation_checkouts').update({ stripe_session_id: session.id, ...details }).eq('id', checkoutId);
       if (error || !session.url) { await stripe.checkout.sessions.expire(session.id); throw error || new Error('Checkout URL missing'); }
       return json({ url: session.url, session_id: session.id }, 200, origin);
     } catch (e) { await db.from('donation_checkouts').update({ status: 'failed' }).eq('id', checkoutId); throw e; }

@@ -49,7 +49,7 @@ export default function DonateSuccess() {
         <h1 className="text-2xl font-bold">{completed ? 'Thank you for supporting UBI Finder!' : cancelled ? 'Checkout cancelled' : failed ? 'Payment not completed' : error || !sessionId ? 'Unable to verify payment' : 'Confirming your payment'}</h1>
         {completed ? <>
           <p>Your ${(result.payment.amount_cents / 100).toFixed(2)} USD contribution is confirmed.</p>
-          <p>Supporter status: <strong>{result.tier}</strong>. Your supporter access is active.</p>
+          {user ? <p>Supporter status: <strong>{result.tier}</strong>. Your account credits are active.</p> : <p>You donated as a guest, so no account credits were granted. Log in before your next donation to receive credits.</p>}
           {receipt && <a className="underline" href={receipt} target="_blank" rel="noopener noreferrer">View Stripe receipt</a>}
         </> : <p role={error ? 'alert' : 'status'}>{cancelled ? 'Checkout was cancelled. Supporter access has not changed.' : failed ? 'This checkout did not complete. You can start a new checkout.' : error || (!sessionId ? 'A valid checkout session is required.' : 'Waiting for Stripe confirmation. Access activates only after a verified payment.')}</p>}
         {!completed && !cancelled && sessionId && <Button variant="outline" onClick={() => setAttempt(attempt + 1)}>Check payment status again</Button>}

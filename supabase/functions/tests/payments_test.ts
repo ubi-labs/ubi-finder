@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { handler as webhook } from '../stripe-webhook/index.ts';
 import { handler as checkout } from '../create-stripe-checkout/index.ts';
+import { handler as cryptoDonation } from '../submit-crypto-donation/index.ts';
 import { handler as status } from '../donation-status/index.ts';
 
 const session = { id: 'cs_test_fixture', currency: 'usd', amount_total: 500, livemode: false,
@@ -105,7 +106,7 @@ Deno.test('checkout uses server ownership, exact cents and safe hosted URLs', ()
     if (url.includes('donation_checkouts')) return Promise.resolve(new Response(null, { status: 204 }));
     throw new Error('Unexpected HTTP call');
   };
-  const response = await checkout(new Request('http://localhost', { method: 'POST', body: JSON.stringify({ guest_token: 'a'.repeat(64), user_id: 'forged-user', user_email: 'forged@example.test', amount_usd: '5.25', return_url: 'http://127.0.0.1:4173' }) }));
+  const response = await checkout(new Request('http://localhost', { method: 'POST', body: JSON.stringify({ guest_token: 'a'.repeat(64), user_id: 'forged-user', user_email: 'forged@example.test', donor_name: 'Private Donor', public_recognition: true, amount_usd: '5.25', return_url: 'http://127.0.0.1:4173' }) }));
   assert.equal(response.status, 200);
   assert.equal(JSON.parse(calls[0].body).p_user_id, null);
   assert.equal(JSON.parse(calls[0].body).p_amount_cents, 525);
@@ -114,6 +115,10 @@ Deno.test('checkout uses server ownership, exact cents and safe hosted URLs', ()
   assert.equal(params.get('success_url'), 'http://127.0.0.1:4173/donate/success?session_id={CHECKOUT_SESSION_ID}');
   assert.equal(params.has('customer_email'), false);
   assert.equal(params.get('metadata[checkout_id]'), 'checkout-fixture');
+  assert.equal(params.has('metadata[donor_name]'), false);
+  const saved = JSON.parse(calls.find((c) => c.url.includes('donation_checkouts'))!.body);
+  assert.equal(saved.donor_name, 'Private Donor');
+  assert.equal(saved.public_recognition, true);
 }));
 Deno.test('forged JWT cannot create checkout or select account status', () => configured(async () => {
   let calls = 0;
@@ -135,4 +140,42 @@ Deno.test('status binds verified account identity and authoritative total', () =
   assert.equal(data.user_id, 'verified-user');
   assert.equal(data.total_cents, 5000);
   assert.equal(data.tier, 'Champion');
+}));
+
+Deno.test('guest completed donations retain receipts without account credits', () => configured(async () => {
+  globalThis.fetch = () => Promise.resolve(Response.json({ total_cents: 50000 }));
+  const response = await status(new Request('http://localhost', { method: 'POST', body: JSON.stringify({ guest_token: 'a'.repeat(64) }) }));
+  const data = await response.json();
+  assert.equal(data.total_cents, 0);
+  assert.equal(data.has_donated, false);
+}));
+Deno.test('crypto submission validates private details and ignores caller identity or claimed verification', () => configured(async () => {
+  let saved: Record<string, unknown> = {};
+  globalThis.fetch = (_input, init) => { saved = JSON.parse(String(init?.body)); return Promise.resolve(Response.json('donation-fixture')); };
+  const body = { guest_token: 'a'.repeat(64), user_id: 'forged', amount_usd: 25, donor_name: 'Crypto Donor', public_recognition: true, crypto_chain: 'celo', transaction_reference: 'https://celoscan.io/tx/0x' + 'A'.repeat(64), review_status: 'confirmed' };
+  const response = await cryptoDonation(new Request('http://localhost', { method: 'POST', body: JSON.stringify(body) }));
+  assert.equal(response.status, 200);
+  assert.equal(saved.p_user_id, null);
+  assert.equal(saved.p_donor_name, 'Crypto Donor');
+  assert.equal(saved.p_transaction_hash, '0x' + 'a'.repeat(64));
+  assert.equal(saved.p_public_recognition, true);
+  assert.equal(saved.review_status, undefined);
+  assert.equal((await response.json()).status, 'pending_review');
+}));
+Deno.test('crypto rejects malformed links, missing opt-in name, and forged authentication before writes', () => configured(async () => {
+  let writes = 0;
+  globalThis.fetch = () => { writes++; return Promise.resolve(Response.json({ message: 'invalid token' }, { status: 401 })); };
+  const base = { guest_token: 'a'.repeat(64), amount_usd: 5, crypto_chain: 'ethereum', transaction_reference: '0x' + 'a'.repeat(64) };
+  for (const extra of [{ transaction_reference: 'https://evil.test/tx/0x' + 'a'.repeat(64) }, { public_recognition: true }, { donor_name: 'a'.repeat(101) }]) {
+    assert.equal((await cryptoDonation(new Request('http://localhost', { method: 'POST', body: JSON.stringify({ ...base, ...extra }) }))).status, 400);
+  }
+  assert.equal(writes, 0);
+  assert.equal((await cryptoDonation(new Request('http://localhost', { method: 'POST', body: JSON.stringify(base), headers: { authorization: 'Bearer forged' } }))).status, 401);
+}));
+Deno.test('crypto submission duplicate and database failure do not claim success', () => configured(async () => {
+  const body = JSON.stringify({ guest_token: 'a'.repeat(64), amount_usd: 5, crypto_chain: 'ethereum', transaction_reference: '0x' + 'a'.repeat(64) });
+  for (const [code, expected] of [['23505', 409], ['XX000', 500]] as const) {
+    globalThis.fetch = () => Promise.resolve(Response.json({ code, message: 'database error' }, { status: 500 }));
+    assert.equal((await cryptoDonation(new Request('http://localhost', { method: 'POST', body }))).status, expected);
+  }
 }));

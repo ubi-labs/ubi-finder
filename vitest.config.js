@@ -27,6 +27,7 @@ export default defineConfig({
         "src/lib/donationStatus.js",
         "src/lib/stripe.js",
         "supabase/functions/_shared/payment-policy.js",
+        "supabase/functions/_shared/donor-details.js",
       ],
       exclude: ["tests/**"],
       thresholds: {

@@ -6,7 +6,11 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Heart, ShieldCheck, Wallet } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/lib/AuthContext";
+import DonationDetailsFields from "@/components/DonationDetailsFields";
+import DonationSignInPrompt from "@/components/DonationSignInPrompt";
+import { submitCryptoDonation } from "@/lib/stripe";
+import { validateDonorDetails } from "../../supabase/functions/_shared/donor-details.js";
 import confetti from "canvas-confetti";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import StripeCheckoutModal from "@/components/StripeCheckoutModal";
@@ -20,7 +24,10 @@ export default function SupportWidget() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCryptoOpen, setIsCryptoOpen] = useState(false);
   const [cryptoError, setCryptoError] = useState("");
-  const [user, setUser] = useState(null);
+  const { user, isLoadingAuth } = useAuth();
+  const [donorDetails, setDonorDetails] = useState({ donor_name: "", public_recognition: false });
+  const [cryptoChain, setCryptoChain] = useState("ethereum");
+  const [transactionReference, setTransactionReference] = useState("");
   const [checkoutAmount, setCheckoutAmount] = useState(100);
   const selectedAmount = customAmount || amount;
 
@@ -29,9 +36,7 @@ export default function SupportWidget() {
     setIsSubmitting(true);
     try {
       const cents = amountToCents(selectedAmount);
-      const { data, error } = await supabase.auth.getSession();
-      if (error) throw new Error("Unable to check your session. Please try again.");
-      setUser(data.session?.user || null);
+      validateDonorDetails(donorDetails.donor_name, donorDetails.public_recognition);
       setCheckoutAmount(cents / 100);
       if (crypto) { setCryptoError(""); setIsCryptoOpen(true); }
       else setIsModalOpen(true);
@@ -46,17 +51,9 @@ export default function SupportWidget() {
     setIsSubmitting(true);
     setCryptoError("");
     try {
-      const { error } = await supabase.from("support_donations").insert({
-        user_id: user?.id || null,
-        amount_usd: checkoutAmount,
-        donor_name: user?.user_metadata?.full_name || "Anonymous Supporter",
-        payment_method: "crypto",
-        status: "pledged",
-        notes: "Self-reported crypto transfer via homepage honor-system; not independently verified.",
-      });
-      if (error) throw new Error("Unable to record your confirmation. Please try again.");
+      await submitCryptoDonation({ amountUsd: checkoutAmount, donorDetails, chain: cryptoChain, transactionReference });
       setIsCryptoOpen(false);
-      toast({ title: "Thank you for your support!", description: "Your crypto transfer is self-confirmed. Stripe-verified supporter access is unchanged." });
+      toast({ title: "Thank you for your support!", description: "Transaction saved. We’ll manually confirm it within a week and give credit to the account you signed in with before donating. Guest donations receive no credits." });
       confetti({ particleCount: 120, spread: 90, origin: { y: 0.6 }, disableForReducedMotion: true });
     } catch (error) {
       setCryptoError(error.message);
@@ -86,6 +83,7 @@ export default function SupportWidget() {
         </CardHeader>
 
         <CardContent className="space-y-5 px-6 sm:px-8">
+          {!isLoadingAuth && !user && <DonationSignInPrompt />}
           <form onSubmit={(event) => handleOpenDonate(event)} className="space-y-4">
             
             {/* Preset Amount Grid */}
@@ -146,18 +144,20 @@ export default function SupportWidget() {
               </div>
             </div>
 
+            <DonationDetailsFields value={donorDetails} onChange={setDonorDetails} idPrefix="homepage-donor" />
+
             <p className="text-xs text-gray-600">Pay securely through Stripe. Enter your email and payment details at Checkout.</p>
 
             <Button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isLoadingAuth}
               size="lg"
               className="w-full bg-gradient-to-r from-emerald-600 via-green-700 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold py-6 text-base rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 mt-2 flex items-center justify-center gap-2"
             >
               <Heart className="w-5 h-5 fill-white text-white" />
               {isSubmitting ? "Preparing checkout…" : `Donate $${selectedAmount} USD via Stripe`}
             </Button>
-            <button type="button" disabled={isSubmitting} onClick={(event) => handleOpenDonate(event, true)} className="block mx-auto text-xs text-gray-600 underline underline-offset-2 hover:text-purple-700 disabled:opacity-50">Donate crypto instead</button>
+            <button type="button" disabled={isSubmitting || isLoadingAuth} onClick={(event) => handleOpenDonate(event, true)} className="block mx-auto text-xs text-gray-600 underline underline-offset-2 hover:text-purple-700 disabled:opacity-50">Donate crypto instead</button>
           </form>
         </CardContent>
 
@@ -173,10 +173,18 @@ export default function SupportWidget() {
       </Card>
 
       <Dialog open={isCryptoOpen} onOpenChange={(open) => { if (!isSubmitting) setIsCryptoOpen(open); }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogTitle>Donate crypto instead</DialogTitle>
           <DialogDescription>Send ETH, USDC, or G$ to <strong>ubifinder.eth</strong> (Ethereum / EVM / Celo). Your selected contribution is ${checkoutAmount.toFixed(2)} USD.</DialogDescription>
-          <p className="text-sm text-gray-600">This uses the honor system. Confirm only after sending your transfer. It is self-reported and does not grant Stripe-verified supporter access.</p>
+          <p className="text-sm text-gray-600">This uses the honor system. Submit only after sending your transfer. We’ll manually confirm your transaction and give account credit within a week for signed-in donors. Self-confirmation does not grant credits immediately.</p>
+          {!user && <DonationSignInPrompt />}
+          <DonationDetailsFields value={donorDetails} onChange={setDonorDetails} idPrefix="crypto-donor" />
+          <div className="space-y-1.5">
+            <Label htmlFor="crypto-chain">Transaction network</Label>
+            <select id="crypto-chain" value={cryptoChain} onChange={(e) => setCryptoChain(e.target.value)} className="w-full rounded-md border p-2"><option value="ethereum">Ethereum</option><option value="celo">Celo</option></select>
+            <Label htmlFor="crypto-transaction">Transaction hash or explorer link</Label>
+            <Input id="crypto-transaction" value={transactionReference} onChange={(e) => setTransactionReference(e.target.value)} maxLength={200} placeholder="0x… or your transaction explorer URL" />
+          </div>
           {cryptoError && <p role="alert" className="text-sm text-red-700">{cryptoError}</p>}
           <Button disabled={isSubmitting} onClick={confirmCrypto}>{isSubmitting ? "Recording confirmation…" : "I have transferred crypto"}</Button>
           <Button variant="ghost" disabled={isSubmitting} onClick={() => setIsCryptoOpen(false)}>Cancel</Button>
@@ -187,6 +195,8 @@ export default function SupportWidget() {
         onClose={() => setIsModalOpen(false)}
         amountUsd={checkoutAmount}
         user={user}
+        donorDetails={donorDetails}
+        onDonorDetailsChange={setDonorDetails}
       />
     </>
   );
