@@ -54,7 +54,7 @@ test('homepage support panel opens Stripe checkout and fails closed when checkou
   await page.goto('/');
   await page.getByLabel('Or enter a custom amount').fill('12.34');
   await page.getByRole('button', { name: 'Donate $12.34 USD via Stripe', exact: true }).click();
-  await expect(page.getByRole('dialog')).toContainText('Contribute $12.34 USD');
+  await expect(page.getByRole('dialog')).toContainText('Your donation is $12.34 USD');
   await expect(page.getByRole('button', { name: 'I have eTransferred' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Continue as guest without credits' }).click();
   await expect(page.getByRole('alert')).toContainText('No payment was taken');

@@ -165,3 +165,13 @@ Issue: https://github.com/ubi-labs/ubi-finder/issues/19
 Summary: Changed homepage presets to5/20/100/500 USD. Collect confidential name/public consent once on homepage for Stripe and crypto; shared standalone supporter dialogs still collect their own details once. Guest confirmation contains amount, one credit warning, prominent login and small guest continuation. Removed repeated homepage payment/login copy; signed-in homepage donors go directly to Stripe. Updated browser regressions for presets, no duplicate modal fields, consent reuse and direct signed-in requests.
 Validation: npm lint, typecheck, coverage (98 tests), build and diff check passed. Isolated browser/DB acceptance and deployed visual check follow push.
 Follow-ups: Verify final preview and CI. Main/live activation remain separate.
+
+## 2026-10-04T23:51:32.552013+00:00 — confirmation copy regression assertion
+
+Agent: Codex
+Branch: `codex/19-stripe-donations`
+Pre-commit HEAD: `fdab47f`
+Issue: https://github.com/ubi-labs/ubi-finder/issues/19
+Summary: Deployed Chrome verification confirmed new presets and acknowledgement without duplicate fields. CI37245033383 passed database reset/lint/integration and14 browser cases; one assertion retained old Contribute wording. Updated it to current donation wording. No product change.
+Validation: Failure log confirms stale copy assertion. Diff check passed; full acceptance rerun follows push. Local98 unit/quality/build andVercel already passed.
+Follow-ups: Confirm all15 browser tests.
