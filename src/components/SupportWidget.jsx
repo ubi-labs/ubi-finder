@@ -4,109 +4,60 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Heart, Copy, Check, Sparkles, Send, ShieldCheck, Wallet, ArrowRight } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Heart, ShieldCheck, Wallet } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/lib/AuthContext";
+import DonationDetailsFields from "@/components/DonationDetailsFields";
+import DonationSignInPrompt from "@/components/DonationSignInPrompt";
+import { initiateStripeCheckout, submitCryptoDonation } from "@/lib/stripe";
+import { validateDonorDetails } from "../../supabase/functions/_shared/donor-details.js";
 import confetti from "canvas-confetti";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import StripeCheckoutModal from "@/components/StripeCheckoutModal";
+import { amountToCents, supporterTier } from "../../supabase/functions/_shared/payment-policy.js";
 
 export default function SupportWidget() {
   const { toast } = useToast();
   const [amount, setAmount] = useState("100");
   const [customAmount, setCustomAmount] = useState("");
-  const [email, setEmail] = useState("");
-  const [donorName, setDonorName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [copiedField, setCopiedField] = useState(null);
+  const [isCryptoOpen, setIsCryptoOpen] = useState(false);
+  const [cryptoError, setCryptoError] = useState("");
+  const { user, isLoadingAuth } = useAuth();
+  const [donorDetails, setDonorDetails] = useState({ donor_name: "", public_recognition: false });
+  const [cryptoChain, setCryptoChain] = useState("ethereum");
+  const [transactionReference, setTransactionReference] = useState("");
+  const [checkoutAmount, setCheckoutAmount] = useState(100);
+  const selectedAmount = customAmount || amount;
 
-  const selectedAmount = customAmount ? customAmount : amount;
-
-  const handleCopy = (text, fieldName) => {
-    navigator.clipboard.writeText(text);
-    setCopiedField(fieldName);
-    setTimeout(() => setCopiedField(null), 2500);
-    toast({
-      title: "Copied to clipboard",
-      description: `${text} has been copied.`,
-    });
-  };
-
-  const handleOpenDonate = (e) => {
-    e.preventDefault();
-    const finalVal = parseFloat(selectedAmount);
-    if (!finalVal || isNaN(finalVal) || finalVal <= 0) {
-      toast({
-        title: "Please enter a valid amount",
-        description: "Select or specify a donation amount to proceed.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Trigger celebratory confetti
-    try {
-      confetti({
-        particleCount: 75,
-        spread: 60,
-        origin: { y: 0.8 },
-      });
-    } catch (err) {
-      console.warn("Confetti animation skipped:", err);
-    }
-
-    setIsModalOpen(true);
-  };
-
-  const handleConfirmDonation = async (paymentMethod) => {
+  const handleOpenDonate = async (event, crypto = false) => {
+    event.preventDefault();
     setIsSubmitting(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      await supabase.from("support_donations").insert([
-        {
-          user_id: user?.id || null,
-          amount_usd: parseFloat(selectedAmount) || 0,
-          donor_name: donorName.trim() || user?.user_metadata?.full_name || "Anonymous Supporter",
-          donor_email: email.trim() || user?.email || null,
-          payment_method: paymentMethod,
-          status: "pledged",
-          notes: `Pledged via ${paymentMethod} confirmation dialog on landing page`,
-        },
-      ]);
-
-      // Confetti burst
-      try {
-        confetti({
-          particleCount: 120,
-          spread: 90,
-          origin: { y: 0.6 },
-        });
-      } catch (e) {
-        console.debug("Confetti animation skipped:", e);
-      }
-
-      toast({
-        title: "Thank You for Your Support! ❤️",
-        description: `Your pledge of $${selectedAmount} USD via ${paymentMethod === 'e-transfer' ? 'E-Transfer' : 'Crypto Transfer'} helps power universal cash access worldwide.`,
-      });
-
-      setIsModalOpen(false);
-      setCustomAmount("");
+      const cents = amountToCents(selectedAmount);
+      validateDonorDetails(donorDetails.donor_name, donorDetails.public_recognition);
+      setCheckoutAmount(cents / 100);
+      if (crypto) { setCryptoError(""); setIsCryptoOpen(true); }
+      else if (user) await initiateStripeCheckout({ amountUsd: cents / 100, user, donorDetails });
+      else setIsModalOpen(true);
     } catch (error) {
-      console.error("Error saving donation pledge:", error);
-      toast({
-        title: "Pledge Recorded",
-        description: "Thank you for supporting UBI Finder! Your generosity makes a difference.",
-      });
-      setIsModalOpen(false);
+      toast({ title: "Unable to start donation", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const confirmCrypto = async () => {
+    setIsSubmitting(true);
+    setCryptoError("");
+    try {
+      await submitCryptoDonation({ amountUsd: checkoutAmount, donorDetails, chain: cryptoChain, transactionReference });
+      setIsCryptoOpen(false);
+      toast({ title: "Thank you for your support!", description: "Transaction saved. We’ll manually confirm it within a week and give credit to the account you signed in with before donating. Guest donations receive no credits." });
+      confetti({ particleCount: 120, spread: 90, origin: { y: 0.6 }, disableForReducedMotion: true });
+    } catch (error) {
+      setCryptoError(error.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -133,7 +84,7 @@ export default function SupportWidget() {
         </CardHeader>
 
         <CardContent className="space-y-5 px-6 sm:px-8">
-          <form onSubmit={handleOpenDonate} className="space-y-4">
+          <form onSubmit={(event) => handleOpenDonate(event)} className="space-y-4">
             
             {/* Preset Amount Grid */}
             <div className="space-y-2">
@@ -148,7 +99,7 @@ export default function SupportWidget() {
                 }}
                 className="grid grid-cols-2 sm:grid-cols-4 gap-2.5"
               >
-                {["20", "100", "500", "1000"].map((preset) => {
+                {["5", "20", "100", "500"].map((preset) => {
                   const isChecked = !customAmount && amount === preset;
                   return (
                     <Label
@@ -163,7 +114,7 @@ export default function SupportWidget() {
                       <RadioGroupItem value={preset} id={`amount-${preset}`} className="sr-only" />
                       <span className="text-lg font-bold">${preset}</span>
                       <span className="text-[10px] text-gray-500 font-normal mt-0.5">
-                        {preset === "20" ? "Supporter" : preset === "100" ? "Advocate" : preset === "500" ? "Champion" : "Patron"}
+                        {supporterTier(Number(preset) * 100)}
                       </span>
                     </Label>
                   );
@@ -193,143 +144,58 @@ export default function SupportWidget() {
               </div>
             </div>
 
-            {/* Optional Email for Receipt */}
-            <div className="space-y-1.5">
-              <Label htmlFor="donor-email" className="text-xs font-semibold text-gray-700">
-                Email address <span className="text-gray-400 font-normal">(Optional, for receipt & updates)</span>
-              </Label>
-              <Input
-                id="donor-email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="bg-white/80 border-gray-200 focus:border-green-600 focus:ring-green-600 text-xs sm:text-sm"
-              />
-            </div>
+            <DonationDetailsFields value={donorDetails} onChange={setDonorDetails} idPrefix="homepage-donor" />
+
+
 
             <Button
               type="submit"
+              disabled={isSubmitting || isLoadingAuth}
               size="lg"
               className="w-full bg-gradient-to-r from-emerald-600 via-green-700 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold py-6 text-base rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 mt-2 flex items-center justify-center gap-2"
             >
               <Heart className="w-5 h-5 fill-white text-white" />
-              Donate ${selectedAmount || "25"} USD Now
+              {isSubmitting ? "Preparing checkout…" : `Donate $${selectedAmount} USD via Stripe`}
             </Button>
+            <button type="button" disabled={isSubmitting || isLoadingAuth} onClick={(event) => handleOpenDonate(event, true)} className="block mx-auto text-xs text-gray-600 underline underline-offset-2 hover:text-purple-700 disabled:opacity-50">Donate crypto instead</button>
           </form>
         </CardContent>
 
         <CardFooter className="bg-gray-50/80 border-t border-gray-100 px-6 py-3.5 flex items-center justify-center gap-4 text-xs text-gray-500">
           <span className="flex items-center gap-1">
-            <ShieldCheck className="w-4 h-4 text-green-700" /> 100% Direct Impact
+            <ShieldCheck className="w-4 h-4 text-green-700" /> Secure Stripe Checkout
           </span>
           <span>•</span>
           <span className="flex items-center gap-1">
-            <Wallet className="w-4 h-4 text-purple-700" /> Fiat & Crypto Accepted
+            <Wallet className="w-4 h-4 text-purple-700" /> Supporter status after confirmation
           </span>
         </CardFooter>
       </Card>
 
-      {/* Confirmation & Payment Instructions Modal */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-md bg-white border-green-100">
-          <DialogHeader>
-            <div className="w-12 h-12 rounded-full bg-green-100 text-green-800 flex items-center justify-center mx-auto mb-2">
-              <Sparkles className="w-6 h-6 text-green-700" />
-            </div>
-            <DialogTitle className="text-center text-xl font-bold text-green-950">
-              Complete Your ${selectedAmount} Contribution
-            </DialogTitle>
-            <DialogDescription className="text-center text-xs text-gray-600">
-              Thank you for advancing Universal Basic Income! Choose your preferred payment method below:
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 my-2 text-xs">
-            
-            {/* E-Transfer / Bank Option */}
-            <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-gray-900 flex items-center gap-1.5">
-                  🏦 Interac / E-Transfer / Bank
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleCopy("donations@firebelly.xyz", "etransfer")}
-                  className="h-7 text-[11px] px-2 text-green-700 hover:bg-green-100"
-                >
-                  {copiedField === "etransfer" ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
-                  {copiedField === "etransfer" ? "Copied" : "Copy Email"}
-                </Button>
-              </div>
-              <p className="text-gray-600">
-                Send your contribution to: <code className="bg-white px-1.5 py-0.5 rounded border border-gray-300 font-mono font-semibold text-green-900">donations@firebelly.xyz</code>
-              </p>
-            </div>
-
-            {/* Cryptocurrency Option */}
-            <div className="p-3.5 bg-purple-50/60 rounded-xl border border-purple-200 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-purple-950 flex items-center gap-1.5">
-                  🪙 Cryptocurrency (Ethereum / EVM / Celo)
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleCopy("ubifinder.eth", "crypto")}
-                  className="h-7 text-[11px] px-2 text-purple-700 hover:bg-purple-100"
-                >
-                  {copiedField === "crypto" ? <Check className="w-3.5 h-3.5 text-purple-600" /> : <Copy className="w-3.5 h-3.5" />}
-                  {copiedField === "crypto" ? "Copied" : "Copy ENS"}
-                </Button>
-              </div>
-              <p className="text-gray-600">
-                Send ETH, USDC, or G$ to ENS: <code className="bg-white px-1.5 py-0.5 rounded border border-purple-200 font-mono font-semibold text-purple-900">ubifinder.eth</code>
-              </p>
-            </div>
-
-            {/* Preferred Donor Name Input */}
-            <div className="space-y-1">
-              <Label htmlFor="donor-board-name" className="text-xs font-semibold text-gray-700">
-                Preferred name for Supporter Recognition <span className="text-gray-400 font-normal">(Optional)</span>
-              </Label>
-              <Input
-                id="donor-board-name"
-                type="text"
-                placeholder="e.g. Satoshi Nakamoto or Community Friend"
-                value={donorName}
-                onChange={(e) => setDonorName(e.target.value)}
-                className="bg-white border-gray-200 text-xs"
-              />
-            </div>
+      <Dialog open={isCryptoOpen} onOpenChange={(open) => { if (!isSubmitting) setIsCryptoOpen(open); }}>
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogTitle>Donate crypto instead</DialogTitle>
+          <DialogDescription>Send ETH, USDC, or G$ to <strong>ubifinder.eth</strong> (Ethereum / EVM / Celo). Your selected contribution is ${checkoutAmount.toFixed(2)} USD.</DialogDescription>
+          <p className="text-sm text-gray-600">This uses the honor system. Submit only after sending your transfer. We’ll manually confirm your transaction and give account credit within a week for signed-in donors. Self-confirmation does not grant credits immediately.</p>
+          {!user && <DonationSignInPrompt />}
+          <div className="space-y-1.5">
+            <Label htmlFor="crypto-chain">Transaction network</Label>
+            <select id="crypto-chain" value={cryptoChain} onChange={(e) => setCryptoChain(e.target.value)} className="w-full rounded-md border p-2"><option value="ethereum">Ethereum</option><option value="celo">Celo</option></select>
+            <Label htmlFor="crypto-transaction">Transaction hash or explorer link</Label>
+            <Input id="crypto-transaction" value={transactionReference} onChange={(e) => setTransactionReference(e.target.value)} maxLength={200} placeholder="0x… or your transaction explorer URL" />
           </div>
-
-          <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-2">
-            <Button
-              variant="outline"
-              onClick={() => setIsModalOpen(false)}
-              className="text-xs border-gray-300 w-full sm:w-auto"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={() => handleConfirmDonation("e-transfer")}
-              disabled={isSubmitting}
-              className="bg-green-700 hover:bg-green-800 text-white text-xs w-full sm:w-auto font-semibold"
-            >
-              I have eTransferred
-            </Button>
-            <Button
-              onClick={() => handleConfirmDonation("crypto")}
-              disabled={isSubmitting}
-              className="bg-purple-700 hover:bg-purple-800 text-white text-xs w-full sm:w-auto font-semibold"
-            >
-              I have transferred crypto
-            </Button>
-          </DialogFooter>
+          {cryptoError && <p role="alert" className="text-sm text-red-700">{cryptoError}</p>}
+          <Button disabled={isSubmitting} onClick={confirmCrypto}>{isSubmitting ? "Recording confirmation…" : "I have transferred crypto"}</Button>
+          <Button variant="ghost" disabled={isSubmitting} onClick={() => setIsCryptoOpen(false)}>Cancel</Button>
         </DialogContent>
       </Dialog>
+      <StripeCheckoutModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        amountUsd={checkoutAmount}
+        user={user}
+        donorDetails={donorDetails}
+      />
     </>
   );
 }

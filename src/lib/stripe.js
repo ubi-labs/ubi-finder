@@ -1,31 +1,34 @@
+import { validateDonorDetails, validateCryptoTransaction } from '../../supabase/functions/_shared/donor-details.js';
 import { supabase } from '@/lib/supabaseClient';
+import { donationRequestHeaders, getDonationGuestToken } from '@/lib/donationStatus';
+import { amountToCents } from '../../supabase/functions/_shared/payment-policy.js';
 
-export async function initiateStripeCheckout({ amountUsd = 5, user = null, returnUrl = null }) {
-  const origin = returnUrl || window.location.origin;
-  const parsedAmount = Math.max(1, Math.round(Number(amountUsd || 5)));
-
-  try {
-    // Attempt invoking Supabase Edge function
-    if (supabase) {
-      const { data, error } = await supabase.functions.invoke('create-stripe-checkout', {
-        body: {
-          amount_usd: parsedAmount,
-          user_id: user?.id || null,
-          user_email: user?.email || null,
-          return_url: origin
-        }
-      });
-
-      if (!error && data?.url) {
-        window.location.href = data.url;
-        return;
-      }
-    }
-  } catch (err) {
-    console.warn('Edge function unavailable, falling back to direct checkout flow:', err);
+export async function initiateStripeCheckout({ amountUsd = 5, user = null, returnUrl = null, donorDetails = { donor_name: '', public_recognition: false } }) {
+  amountToCents(amountUsd);
+  const details = validateDonorDetails(donorDetails.donor_name, donorDetails.public_recognition);
+  const { data, error } = await supabase.functions.invoke('create-stripe-checkout', {
+    headers: await donationRequestHeaders(),
+    body: { ...details, amount_usd: amountUsd, guest_token: getDonationGuestToken(), return_url: returnUrl || window.location.origin },
+  });
+  if (error || !data?.url) throw new Error('Checkout is unavailable. No payment was taken. Please try again.');
+  const url = new URL(data.url);
+  if (url.protocol !== 'https:' || url.hostname !== 'checkout.stripe.com' || url.username || url.password) {
+    throw new Error('The payment provider returned an invalid checkout link.');
   }
+  window.location.assign(url.href);
+}
 
-  // Graceful fallback for local dev or direct link
-  const successPath = `${origin}/donate/success?amount=${parsedAmount}&session_id=stripe_sess_${Date.now()}`;
-  window.location.href = successPath;
+export async function submitCryptoDonation({ amountUsd, donorDetails, chain, transactionReference }) {
+  amountToCents(amountUsd);
+  const details = validateDonorDetails(donorDetails.donor_name, donorDetails.public_recognition);
+  validateCryptoTransaction(chain, transactionReference);
+  const { data, error } = await supabase.functions.invoke('submit-crypto-donation', {
+    headers: await donationRequestHeaders(),
+    body: { ...details, amount_usd: amountUsd, guest_token: getDonationGuestToken(), crypto_chain: chain, transaction_reference: transactionReference },
+  });
+  if (error || !data?.donation_id || data.status !== 'pending_review') {
+    if (error?.context?.status === 409) throw new Error('This transaction has already been submitted for review.');
+    throw new Error('Unable to record your transaction. Please try again.');
+  }
+  return data;
 }

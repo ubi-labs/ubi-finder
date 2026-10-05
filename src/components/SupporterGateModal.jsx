@@ -152,7 +152,7 @@ export default function SupporterGateModal({ isOpen, user = null, featureName = 
 
             <div className="flex items-center justify-center gap-1.5 text-[11px] text-gray-500">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-              <span>Direct Stripe integration. Instant lifetime access confirmation.</span>
+              <span>Secure checkout with Stripe. Access activates after payment confirmation.</span>
             </div>
           </div>
         </DialogContent>

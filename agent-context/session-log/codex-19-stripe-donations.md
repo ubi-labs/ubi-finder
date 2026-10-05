@@ -1,0 +1,177 @@
+# Stripe donation pipeline — issue #19
+
+## 2026-10-03 — implementation and sandbox Edge Function deployment
+
+Agent: Codex
+Branch: `codex/19-stripe-donations`
+Pre-commit HEAD: `38b0cf4ea0628fc8f20b6109a15efc09376768aa`
+Issue: https://github.com/ubi-labs/ubi-finder/issues/19 (Project status In Progress)
+
+Summary:
+- Replaced simulated card collection/success with Stripe-hosted Checkout. Validated exact amounts, return origins, server-authenticated identity and strong guest capabilities; removed browser donation writes and local paid-status authority.
+- Added signed webhook and server-owned status function. Added a migration for locked, atomic event/donation/supporter updates, mode isolation, protected usage payment fields, and browser privilege revocation.
+- Added amount/origin/tier/ownership/failure unit regressions, real-HMAC Edge Function tests, local database concurrency/RLS tests, and payment-return browser scenarios. CI runs the Deno suite and avoids treating shared/test function directories as deployable functions.
+- Deployed `stripe-webhook` v1, hardened `create-stripe-checkout` v2, and `donation-status` v1 directly with Supabase's API bundling to `oinubdnkqnifeaaejmjl`. Webhook is ACTIVE with verify_jwt=false. Unsigned deployed probe returned configured fail-closed HTTP503, not a success.
+- Verified Stripe sandbox account `acct_1UMankGlK1sz5KBH`. Created sandbox destination `we_1UMbbWGlK1sz5KBHhgdxgEXi`, subscribing to completed, async succeeded, async failed, and expired Checkout events. Saved its signing secret only in ignored `.env.local`; no credential values logged or committed.
+- Secret upload was rejected by Supabase account privileges, despite successful function deployment. User is adding keys manually; requested signing secret and `STRIPE_MODE=test` too.
+
+Validation:
+- 10 Deno Edge Function tests passed; handlers typechecked by Deno test.
+- `npm ci`, final `npm run lint`, `npm run typecheck`, `npm run test:coverage` and `npm run build` passed. 87 unit tests; statements 99.68%, branches 89.29%, functions 100%, lines 99.65%. Coverage includes the payment policy, checkout client and verified status client. Lint initially raced generated coverage output; generated reports are now explicitly ignored and lint rerun passed. Build retains the existing large-bundle warning.
+- Exclusive local Supabase was queued because swap 24,177.4 MiB exceeded the 20 GiB cap. Withdrew that request after identifying the existing isolated Ubuntu PR validation job; coordinator confirmed withdrawal. No Mac stack operated. Migration reset/db lint, new donation database regression and full local acceptance will run in CI.
+- Isolated CI run 37159645289 passed clean reset/seed, error-level SQL lint, concurrent donation/replay/rollback/browser-privilege regression and all seven browser acceptance scenarios. Quality CI 37159645170 passed.
+- GitHub deployment run 37159865795 failed at linking because its Supabase access token was Unauthorized; it applied no migrations. The local CLI dry run confirmed only 00039 pending, and direct `supabase db push --linked --yes` applied that exact validated migration to the linked project.
+- PR #39 is draft. Commit a73796163ab65861f6ba4223a10d74835cd8aea9 is pushed. Vercel preview is deployed but protected by Vercel sign-in; no hosted UI assertion made. Main frontend is unchanged. Hosted Checkout and actual signed payment delivery are not yet demonstrated. No sandbox payment or live charge has been made.
+
+Follow-ups:
+- Completed isolated CI reset/db lint/database tests/full local acceptance. No shared Mac lease needed.
+- Confirm secret configuration and allow the exact preview origin for sandbox testing; then complete and replay an actual sandbox Checkout webhook and verify ledger/tier/receipt. Publish main frontend after review.
+- Refresh the existing GitHub SUPABASE_ACCESS_TOKEN through an authorized account to restore automatic migration deployment. CLI function/database access works, but secret writes remain forbidden.
+- Confirm production environment/account and obtain explicit real-transaction authorization before live activation. Linked project name is UBI-Finder-dev but existing Production CI targets it.
+- Refund/dispute revocation, guest account transfer and broader usage RLS (#30) remain outside this implementation.
+- Commit uses authenticated GitHub account KazanderDad (verified id 98373366) and the same GitHub noreply identity as main, rather than the checkout’s generic UBI Finder Dev identity; no prior history rewritten.
+- Preserve preexisting untracked `agent-context/session-log/main.md`.
+
+## 2026-10-03T22:55:10Z — deployment evidence and pending credentials
+
+Agent: Codex
+Branch: `codex/19-stripe-donations`
+Pre-commit HEAD: `a73796163ab65861f6ba4223a10d74835cd8aea9`
+Issue: https://github.com/ubi-labs/ubi-finder/issues/19
+
+Summary: Recorded green implementation CI and seven browser scenarios, direct hosted migration deployment, hosted SQL lint success, draft PR #39, and the separate CI-token/secret-write limitations. All three Edge Functions and migration 00039 are deployed. Stripe sandbox webhook destination configured; actual payment remains gated on manual Supabase Stripe secrets. Main frontend remains unchanged.
+Validation: Documentation-only change; retained implementation validation above, `git diff --check` passed. No additional application test run required for evidence-only prose.
+Follow-ups: Manual secrets, exact sandbox preview origin allowance, actual sandbox Checkout/replay/receipt verification, reviewed main frontend publication, restored deployment token, then separately authorized live activation/transaction.
+
+
+## 2026-10-04T01:43:18Z — fix deployment CI and diagnose absent review
+
+Agent: Codex
+Branch: `codex/19-stripe-donations`
+Pre-commit HEAD: `68b883b154fea0c5d913914e53b1f89cd8903088`
+Issue: https://github.com/ubi-labs/ubi-finder/issues/19
+PR: https://github.com/ubi-labs/ubi-finder/pull/39
+
+Summary:
+- Current PR quality/database/Vercel checks were already green. Separate deployment run 37159865795 failed at linking with Unauthorized Supabase access token.
+- Validated the working Supabase CLI Keychain credential against exact linked project `oinubdnkqnifeaaejmjl`, refreshed the existing Production GitHub secret through encrypted stdin without exposing its value, and reran the failed job.
+- Attempt 2 passed project linking, migrations and all Edge Function deployments. Existing database password required no change. No application/workflow code change needed.
+- Read-only Codex settings inspection: personal Automatic review enabled, Review trigger On PR open. PR opened as draft and became ready at 2026-10-03T22:59:45Z. No manual review request, bot reaction or review exists. Repository connection lookup failed twice with Unable to load GitHub connections, so repository review enablement and exact auto-trigger cause remain unverified. Draft opening is a plausible explanation, not a confirmed root cause. Review preferences were not changed and no review comment sent.
+
+Validation: Deployment attempt 2 success verified from job steps; current implementation PR checks all passed. `git diff --check` passed; documentation-only update requires no repeated application tests.
+Follow-ups: Verify repository-level automatic review configuration when GitHub connections load; a single explicit `@codex review` comment can test manual triggering if requested. Continue existing sandbox payment activation after secrets are configured.
+
+## 2026-10-04 — deployed sandbox Checkout verification
+
+Agent: Codex
+Branch: `codex/19-stripe-donations`
+Pre-commit HEAD: `04bdab6329a4c1fd4961cb45da53641d660d6e49`
+Issue: https://github.com/ubi-labs/ubi-finder/issues/19
+
+Summary: Verified manually configured secrets by hashes without logging credentials. Completed an actual $5 USD sandbox payment in Stripe-hosted Checkout. Automatic fulfillment returned completed status, 500 cents, Supporter and a receipt URL. Two concurrent signed replays of the actual completion event returned HTTP200 without increasing the total. No live charge. Preserved unrelated untracked main session log.
+
+Validation: Unsigned webhook HTTP400; signed configuration probe HTTP200; initial pending total zero; Stripe session complete/paid/livemode false; server completed total 500 cents; replay total unchanged. Receipt URL available; email delivery and direct hosted ledger row counts not independently checked. Documentation-only change: diff whitespace check; application tests not repeated (previous CI green).
+Follow-ups: Review/publish PR #39 frontend; main currently serves old donation UI. Separately confirm production account/environment and obtain explicit authorization before any live transaction.
+
+## 2026-10-04T05:02:05.363509+00:00 — homepage Stripe default and crypto alternative
+
+Agent: Codex
+Branch: `codex/19-stripe-donations`
+Pre-commit HEAD: `e0512f992955dd50073e0e245842213b6e4d1f30`
+Issue: https://github.com/ubi-labs/ubi-finder/issues/19
+
+Summary: Fixed missed homepage SupportWidget entry point. Stripe Checkout is the default; Interac/bank removed; small crypto link retains explicit honor-system confirmation and records only an unverified pledge. Failed pledge inserts now show an error instead of success. Confetti fires only after successful crypto self-confirmation or verified Stripe completion; never on opening a dialog. Preset tier labels use the shared server thresholds. Extended acceptance CI path triggers to frontend and browser tests.
+
+Validation: npm run lint, npm run typecheck, npm run test:coverage (87 tests), npm run build and git diff --check passed. CUA local browser verified main Stripe dialog and separate crypto instructions; panel screenshot saved outside repository. Four new browser scenarios cover custom amounts/errors, fractional cents, hosted redirect and crypto error/success celebration; delayed-confirmation scenario now checks animation timing. Full acceptance validation is delegated to the existing isolated GitHub Actions runtime (no shared Mac Supabase operated) and is pending push at this commit.
+Follow-ups: Verify fresh acceptance CI and Vercel deployment. Add exact preview origin to STRIPE_ALLOWED_ORIGINS manually: CLI secret writes remain forbidden by account privileges. Main frontend publication and live activation remain separate.
+
+## 2026-10-04T05:06:02.829510+00:00 — acceptance selector repair
+
+Agent: Codex
+Branch: `codex/19-stripe-donations`
+Pre-commit HEAD: `170f4dbdd951fd594fa3ddda7f3c0699d2d20a21`
+Issue: https://github.com/ubi-labs/ubi-finder/issues/19
+
+Summary: CI run 37178723273 passed clean reset, SQL lint and atomic donation/privilege tests. Ten browser scenarios passed, including homepage hosted redirect, failure behavior, crypto self-confirmation and celebration timing. Fractional-cent rejection worked, but the test substring matched both visible toast and accessibility announcement. Changed it to an exact visible text match. No product behavior changed.
+Validation: Failure log confirms strict-mode duplicate selector; git diff --check passed. Existing quality CI passed at 170f4db. Full isolated acceptance rerun follows push; application tests not repeated for a selector-only repair.
+Follow-ups: Confirm all 11 browser scenarios and exact latest-head CI pass. Preview return origin still needs manual secret configuration.
+
+## 2026-10-04 — confidential donor records, login-first credits, crypto review
+
+Agent: Codex
+Branch: `codex/19-stripe-donations`
+Pre-commit HEAD: `342917d8cc1846f23ca9fe3413f75fb1f3873a85`
+Issue: https://github.com/ubi-labs/ubi-finder/issues/19
+
+Summary: Added optional confidential names and explicit, default-off future public sponsor recognition consent to homepage and shared Stripe/crypto dialogs. Names remain in protected first-party records, not Stripe metadata. Prominent login-first prompt returns to the donation section; guest continuation explicitly receives no account credits. Guest Stripe receipts remain verifiable, but guest entitlements are suppressed server/client and legacy verified guest usage grants cleared. Crypto flow validates/saves canonical network/hash through a new identity-validating Edge Function, with seven-day pending review deadline and donor rate/duplicate guards. Service-only manual confirmation locks records/accounts and atomically credits verified amounts once; signed-in credits combine Stripe and crypto. Operator review/ownership evidence procedure documented; no public leaderboard or automated on-chain verifier added.
+
+Validation: npm run lint, npm run typecheck, npm run test:coverage (92 tests; 99.71% statements, 90.52% branches), npm run build, Deno handler tests (14), and git diff --check passed. Local CUA verified private name, consent, prominent login and crypto reference form; screenshot saved outside repository. Isolated CI reset/error-level SQL lint, extended atomic/private/manual-credit integration and 15 browser scenarios follow push; no shared Mac Supabase operated.
+Follow-ups: Verify isolated schema/database/browser validation before hosted migration and function deployment; verify preview deployment. Existing preview origin configuration requires a privileged account. Reviewers must operate the pending crypto queue daily to meet the seven-day donor promise; main publication and real live payment remain pending.
+
+## 2026-10-04T21:39:29.982432+00:00 — hosted donor records and crypto review verified
+
+Agent: Codex
+Branch: `codex/19-stripe-donations`
+Pre-commit HEAD: `e5084cff82a65dc63d40536f97af1f9b83fde7d6`
+Issue: https://github.com/ubi-labs/ubi-finder/issues/19
+
+Summary: All implementation checks green, including 15 browser scenarios and expanded database tests (run 37236222792). Applied only migration 00040 after linked-project/dry-run verification; deployed updated Checkout/status and new crypto-submission function. Hosted lint/introspection confirmed schema and service-only review permissions. Hosted crypto fixture persisted private name, consent and canonical reference with seven-day deadline; no immediate credit and duplicate HTTP409. Removed synthetic row/account; confirmed cleanup. Existing completed sandbox guest payment retains receipt with zero account credits. Preview deployment passed; main unchanged.
+
+Validation: Quality CI and Vercel passed at e5084cf. Hosted error-level SQL lint no errors. Real HTTP crypto save/duplicate and SQL metadata/permission checks passed. First Management API probe assumed HTTP200 for SQL and stopped on successful HTTP201; corrected to accept 2xx, verified prior fixture cleanup and repeated full bounded probe successfully. No live payment, crypto transfer or hosted manual credit. Documentation-only diff check; application validations not repeated.
+Follow-ups: Add exact preview origin using a privileged Supabase account (STRIPE_ALLOWED_ORIGINS remains absent); assign human operator for daily seven-day review queue; review/publish main frontend and separately authorize live activation.
+
+## 2026-10-04T21:53:45.290567+00:00 — exact sandbox preview origin enabled
+
+Agent: Codex
+Branch: `codex/19-stripe-donations`
+Pre-commit HEAD: `4c5f6e758b2fc97bd680b857eae4b77c4fa6dafa`
+Issue: https://github.com/ubi-labs/ubi-finder/issues/19
+
+Summary: Added the exact existing donation preview origin to sandbox defaults. Live defaults retain production origins only; explicit configured origins remain authoritative, including empty deny-all. This resolves the earlier restricted secret-write prerequisite. Deployed Checkout/status/crypto functions and verified hosted preview requests.
+
+Validation: npm lint, typecheck, coverage (95 unit tests), build; 15 Deno tests; exact sandbox/live/override/forged-origin regression coverage passed. Hosted OPTIONS for all three functions accepted the exact preview and rejected an unrelated origin. Hosted preview Checkout created with private donor metadata and crypto submission saved pending review without guest credits. Expired the unpaid synthetic Checkout and removed all fixture records. No payment made. Fresh isolated acceptance CI follows push.
+Follow-ups: Review and publish frontend through PR; assign daily human crypto review operator; live activation remains separate.
+
+## 2026-10-04T22:54:28.769540+00:00 — guest public key incorrectly treated as user JWT
+
+Agent: Codex
+Branch: `codex/19-stripe-donations`
+Pre-commit HEAD: `9499b5d0fa0131fbeb2dc2580fc2dfaf0baf8033`
+Issue: https://github.com/ubi-labs/ubi-finder/issues/19
+
+Summary: Reproduced user guest Checkout failure in their Chrome preview. Network response HTTP401 was handler error "Please sign in again." SDK supplied its legacy anonymous API key as Authorization; it differs from runtime's injected anonymous key, so handler attempted user JWT validation. Payment calls now explicitly send only a real local sign-in session token, or empty Authorization for guests; the SDK retains apikey and strong guest capability. Actual invalid user tokens remain fail-closed in server handler. Applied consistently to Checkout/status/crypto. Earlier direct hosted probes omitted SDK headers and missed this transport boundary.
+
+Validation: npm run lint, npm run typecheck, npm run test:coverage (98 tests), npm run build, git diff --check passed. Unit regressions cover all three guest/signed-in headers and lookup failure; browser tests assert guest Authorization empty and apikey present. Isolated acceptance and deployed Chrome retry follow push. No charge made; unrelated untracked main session log preserved.
+Follow-ups: Confirm fresh CI and hosted user-visible guest Checkout before completion.
+
+## 2026-10-04T23:01:13.923573+00:00 — deployed guest Checkout verified in user Chrome
+
+Agent: Codex
+Branch: `codex/19-stripe-donations`
+Pre-commit HEAD: `5b6179bb3c80d5fc0a6a5bdd5656ffda7d9ab971`
+Issue: https://github.com/ubi-labs/ubi-finder/issues/19
+
+Summary: Refreshed the user's preview tab and verified guest $100 donation reaches Stripe-hosted UBI-Finder sandbox Checkout. Left user tab open, no payment details entered and no payment made. Screenshot saved outside repository.
+Validation: Final code-head quality and Vercel checks passed. Acceptance run 37241793139 attempt1 failed during runtime startup on mail port60324 already in use; attempt2 passed clean reset/lint/integration and all15 browser scenarios.98 unit tests passed locally/CI.
+Follow-ups: This completion evidence is retained locally in session log; no further application change required. Main publication/live activation remain separate.
+
+## 2026-10-04T23:47:30.739371+00:00 — simplify donation choices and confirmation
+
+Agent: Codex
+Branch: `codex/19-stripe-donations`
+Pre-commit HEAD: `5b6179bb3c80d5fc0a6a5bdd5656ffda7d9ab971`
+Issue: https://github.com/ubi-labs/ubi-finder/issues/19
+
+Summary: Changed homepage presets to5/20/100/500 USD. Collect confidential name/public consent once on homepage for Stripe and crypto; shared standalone supporter dialogs still collect their own details once. Guest confirmation contains amount, one credit warning, prominent login and small guest continuation. Removed repeated homepage payment/login copy; signed-in homepage donors go directly to Stripe. Updated browser regressions for presets, no duplicate modal fields, consent reuse and direct signed-in requests.
+Validation: npm lint, typecheck, coverage (98 tests), build and diff check passed. Isolated browser/DB acceptance and deployed visual check follow push.
+Follow-ups: Verify final preview and CI. Main/live activation remain separate.
+
+## 2026-10-04T23:51:32.552013+00:00 — confirmation copy regression assertion
+
+Agent: Codex
+Branch: `codex/19-stripe-donations`
+Pre-commit HEAD: `fdab47f`
+Issue: https://github.com/ubi-labs/ubi-finder/issues/19
+Summary: Deployed Chrome verification confirmed new presets and acknowledgement without duplicate fields. CI37245033383 passed database reset/lint/integration and14 browser cases; one assertion retained old Contribute wording. Updated it to current donation wording. No product change.
+Validation: Failure log confirms stale copy assertion. Diff check passed; full acceptance rerun follows push. Local98 unit/quality/build andVercel already passed.
+Follow-ups: Confirm all15 browser tests.

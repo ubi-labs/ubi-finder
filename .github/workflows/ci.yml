@@ -33,6 +33,14 @@ jobs:
     - name: Run governed unit coverage
       run: npm run test:coverage
 
+    - name: Set up Deno
+      uses: denoland/setup-deno@v2
+      with:
+        deno-version: v2.x
+
+    - name: Verify payment Edge Functions
+      run: deno test --node-modules-dir=none --no-lock --allow-env supabase/functions/tests/payments_test.ts
+
     - name: Build application
       run: npm run build
       env:

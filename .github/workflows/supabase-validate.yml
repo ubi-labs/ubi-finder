@@ -5,6 +5,9 @@ on:
     branches: [main]
     paths:
       - "supabase/**"
+      - "src/**"
+      - "tests/acceptance/**"
+      - "playwright.config.js"
       - ".github/workflows/supabase-validate.yml"
       - ".github/workflows/supabase-migration.yml"
 
@@ -53,6 +56,9 @@ jobs:
           echo "VITE_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
           echo "VITE_SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
           echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
+
+      - name: Test atomic donation fulfillment and privileges
+        run: node tests/integration/stripe-donations.mjs
 
       - name: Run local browser acceptance
         run: npm run test:acceptance:local
