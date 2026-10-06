@@ -34,9 +34,11 @@ try {
     assert.ok((await client.rpc('read_program_catalog',{p_ip:ip(),p_user_id:user.id})).error);
     const detailIp=ip();
     const details=await Promise.all(Array.from({length:35},()=>request(detailIp,{p_user_id:user.id,p_program_id:id})));
-    assert.equal(details.filter(r=>!r.error).length,30,'concurrent per-user detail quota must be atomic');
-    assert.equal(details[0].data.program.program_id,id);
-    assert.ok(!('submitter_email' in details[0].data.program));
+    const acceptedDetails=details.filter(r=>!r.error);
+    assert.equal(acceptedDetails.length,30,'concurrent per-user detail quota must be atomic');
+    for(const r of details.filter(r=>r.error)) assert.match(r.error.message,/quota/);
+    assert.equal(acceptedDetails[0].data.program.program_id,id);
+    assert.ok(!('submitter_email' in acceptedDetails[0].data.program));
   }
   console.log('Abuse controls: bounded public summaries, denied raw/RPC bypasses, verified details and concurrent quotas passed.');
 } finally { for(const id of users) await admin.auth.admin.deleteUser(id); }
