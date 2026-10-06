@@ -1,3 +1,6 @@
+import TurnstileChallenge from '@/components/TurnstileChallenge';
+import { captchaOptions, localCaptchaDevelopment } from '@/lib/captcha';
+import { programSummaryResult } from '@/lib/programCatalog';
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -133,6 +136,8 @@ export default function UserForm({ onSubmit = null, onComplete = null, initialDa
 
   const [email, setEmail] = useState(user?.email || "");
   const [sending, setSending] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaAttempt, setCaptchaAttempt] = useState(0);
   const [sent, setSent] = useState(false);
   const [sendError, setSendError] = useState("");
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -185,10 +190,7 @@ export default function UserForm({ onSubmit = null, onComplete = null, initialDa
     const fetchCount = async () => {
       setLoadingCount(true);
       try {
-        const { data, error } = await supabase
-          .from('programs')
-          .select('id, available_regions, required_states, municipalities')
-          .neq('internal_status', 'deleted');
+        const { data, error } = await programSummaryResult();
 
         if (!isMounted) return;
 
@@ -388,9 +390,11 @@ export default function UserForm({ onSubmit = null, onComplete = null, initialDa
         localStorage.setItem("user_profile_data", JSON.stringify(unauthRecord));
         localStorage.setItem("pendingProfile", JSON.stringify(unauthRecord));
 
+        const verification = captchaOptions(captchaToken, localCaptchaDevelopment);
         const { error } = await supabase.auth.signInWithOtp({
           email: email.trim(),
           options: {
+            ...verification,
             emailRedirectTo: `${window.location.origin}/My-Report`,
             data: {
               full_name: formData.name.trim(),
@@ -405,13 +409,17 @@ export default function UserForm({ onSubmit = null, onComplete = null, initialDa
       }
     } catch (err) {
       console.error("Profile submission error:", err);
-      // Fallback: save to localStorage so the user can continue smoothly
+      setSendError(err.message || "Unable to save your profile. Please try again.");
+      if (!isAuthenticated) return;
+      // Preserve local answers for authenticated users if saving fails.
       const fallbackRecord = { ...cleanPayload, email: user?.email || email.trim() };
       localStorage.setItem("user_profile_data", JSON.stringify(fallbackRecord));
       localStorage.setItem("pendingProfile", JSON.stringify(fallbackRecord));
       if (onComplete) onComplete(fallbackRecord);
       if (onSubmit) onSubmit(fallbackRecord);
     } finally {
+      setCaptchaToken("");
+      setCaptchaAttempt(n => n + 1);
       setSending(false);
     }
   };
@@ -748,6 +756,7 @@ export default function UserForm({ onSubmit = null, onComplete = null, initialDa
                 </p>
               )}
 
+              {!isAuthenticated && <TurnstileChallenge onToken={setCaptchaToken} attempt={captchaAttempt} />}
               <div className="flex items-center gap-3 pt-2">
                 <Button
                   type="button"
@@ -760,7 +769,7 @@ export default function UserForm({ onSubmit = null, onComplete = null, initialDa
                 </Button>
                 <Button
                   type="submit"
-                  disabled={!isStep3Valid || sending}
+                  disabled={!isStep3Valid || sending || (!isAuthenticated && !localCaptchaDevelopment && !captchaToken)}
                   className="w-2/3 bg-green-700 hover:bg-green-800 text-white font-semibold py-2.5 shadow-md flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   {sending 

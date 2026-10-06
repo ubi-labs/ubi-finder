@@ -1,3 +1,4 @@
+import { programSummaryResult } from '@/lib/programCatalog';
 
 
 
@@ -46,7 +47,7 @@ export default function BlogPostPage() {
     try {
       const [postRes, programsRes, commentsRes, userRes] = await Promise.all([
         supabase.from('blog_posts').select('*').eq('id', postId).single(),
-        supabase.from('programs').select('*'),
+        programSummaryResult(),
         supabase.from('comments').select('*').eq('blog_post_id', postId).order('created_date', { ascending: true }),
         supabase.auth.getUser()
       ]);

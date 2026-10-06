@@ -39,13 +39,16 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Start isolated Supabase runtime
-        run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor
+        run: supabase start -x studio,imgproxy,logflare,vector,supavisor
 
       - name: Rebuild database from migrations and seed
         run: supabase db reset
 
       - name: Lint database
         run: supabase db lint --local --level error
+
+      - name: Test database abuse controls
+        run: supabase test db
 
       - name: Export isolated runtime credentials
         run: |
@@ -59,6 +62,20 @@ jobs:
 
       - name: Test atomic donation fulfillment and privileges
         run: node tests/integration/stripe-donations.mjs
+
+      - name: Test abuse controls and concurrency
+        run: node tests/integration/abuse-controls.mjs
+
+      - name: Serve controlled program endpoint
+        run: |
+          echo 'ABUSE_LOCAL_DEVELOPMENT=true' > "$RUNNER_TEMP/abuse.env"
+          supabase functions serve program-catalog --no-verify-jwt --env-file "$RUNNER_TEMP/abuse.env" > "$RUNNER_TEMP/catalog-runtime.log" 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl --fail -s "$VITE_SUPABASE_URL/functions/v1/program-catalog" -X POST -H 'Content-Type: application/json' -d '{"limit":1}' >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat "$RUNNER_TEMP/catalog-runtime.log"
+          exit 1
 
       - name: Run local browser acceptance
         run: npm run test:acceptance:local
