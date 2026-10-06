@@ -1,6 +1,6 @@
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(19);
+SELECT plan(21);
 SELECT ok(NOT has_table_privilege('anon','public.programs','SELECT'),'anonymous table reads revoked');
 SELECT ok(NOT has_function_privilege('anon','public.read_program_catalog(text,uuid,integer,integer,integer)','EXECUTE'),'anonymous cannot invoke service RPC');
 SELECT ok(NOT has_function_privilege('authenticated','public.read_program_catalog(text,uuid,integer,integer,integer)','EXECUTE'),'authenticated cannot bypass gateway quotas');
@@ -30,6 +30,17 @@ SELECT ok((SELECT max(program_id) FROM public.programs)<public.next_program_numb
 SET LOCAL ROLE authenticated;
 SET LOCAL request.jwt.claims = '{"sub":"12345678-1234-1234-1234-123456789abc","role":"authenticated"}';
 SELECT is((SELECT count(*)::integer FROM public.programs),0,'ordinary authenticated raw reads blocked');
+RESET ROLE;
+UPDATE public.programs SET created_by_id='12345678-1234-1234-1234-123456789abc'
+ WHERE program_id=(SELECT min(program_id) FROM public.programs);
+SET LOCAL ROLE authenticated;
+SELECT is((SELECT count(*)::integer FROM public.programs),1,'creators retain raw access to their own program');
+RESET ROLE;
+UPDATE public.programs SET created_by_id=NULL WHERE created_by_id='12345678-1234-1234-1234-123456789abc';
+INSERT INTO public.program_managers(program_id,user_email,role)
+ SELECT min(program_id),'sql-abuse@example.test','owner' FROM public.programs;
+SET LOCAL ROLE authenticated;
+SELECT is((SELECT count(*)::integer FROM public.programs),1,'authorized managers retain program access without RLS recursion');
 RESET ROLE;
 SELECT * FROM finish();
 ROLLBACK;
