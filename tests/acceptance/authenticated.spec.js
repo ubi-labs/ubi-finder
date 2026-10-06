@@ -18,7 +18,7 @@ test("password authentication opens protected dashboard and report paths", async
 });
 
 test('verified account opens controlled program detail', async ({ page }) => {
-  await page.goto('/login');
+  await page.goto('/login?redirectTo=%2FPrograms');
   await page.getByLabel('Email address').fill(acceptanceUser.email);
   await page.getByLabel('Password').fill(acceptanceUser.password);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
