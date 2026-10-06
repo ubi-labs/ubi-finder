@@ -35,6 +35,8 @@ We automatically collect certain information about your device, including:
 * Operating system
 * Usage patterns
 
+We use Cloudflare Turnstile to help prevent automated signups. Our application abuse-control counters use keyed IP identifiers and expire within one day, with scheduled cleanup every minute. These counters do not contain raw IP addresses.
+
 ## 3. How We Use Your Information
 
 We use the information we collect to:
