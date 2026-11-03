@@ -3,6 +3,7 @@ import { handler as webhook } from '../stripe-webhook/index.ts';
 import { handler as checkout } from '../create-stripe-checkout/index.ts';
 import { handler as cryptoDonation } from '../submit-crypto-donation/index.ts';
 import { handler as status } from '../donation-status/index.ts';
+import { paymentConfig } from '../_shared/payments.ts';
 
 const session = { id: 'cs_test_fixture', currency: 'usd', amount_total: 500, livemode: false,
   payment_status: 'paid', metadata: { checkout_id: 'checkout-1' },
@@ -190,4 +191,21 @@ Deno.test('exact sandbox preview default is allowed and remains excluded in live
   Deno.env.set('STRIPE_SECRET_KEY', 'sk_live_fixture');
   assert.equal((await checkout(preflight())).status, 403);
   assert.equal((await cryptoDonation(preflight())).status, 403);
+}));
+
+Deno.test('restricted and secret keys must match the exact payment environment', () => configured(async () => {
+  for (const mode of ['test', 'live']) {
+    Deno.env.set('STRIPE_MODE', mode);
+    for (const type of ['sk', 'rk']) {
+      Deno.env.set('STRIPE_SECRET_KEY', `${type}_${mode}_fixture`);
+      assert.equal(paymentConfig().livemode, mode === 'live');
+    }
+    for (const key of [`rk_${mode === 'live' ? 'test' : 'live'}_fixture`, `sk_${mode === 'live' ? 'test' : 'live'}_fixture`, `pk_${mode}_fixture`, 'rk_unknown_fixture', ' rk_live_fixture']) {
+      Deno.env.set('STRIPE_SECRET_KEY', key);
+      assert.throws(() => paymentConfig(), /environment configuration mismatch/);
+    }
+  }
+  Deno.env.set('STRIPE_MODE', 'invalid');
+  Deno.env.set('STRIPE_SECRET_KEY', 'rk_live_fixture');
+  assert.throws(() => paymentConfig(), /environment configuration mismatch/);
 }));

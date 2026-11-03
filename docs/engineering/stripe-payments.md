@@ -16,7 +16,7 @@ Deploy migration `00039_verified_stripe_donations.sql` before the three function
 
 Supabase Edge Function secrets:
 
-- `STRIPE_SECRET_KEY`: server-only `sk_test_…` for sandbox or `sk_live_…` for live.
+- `STRIPE_SECRET_KEY`: server-only restricted `rk_test_…` for sandbox or `rk_live_…` for live (preferred); corresponding `sk_test_…`/`sk_live_…` secret keys are also accepted. The key must match `STRIPE_MODE`. Restricted keys need Checkout Sessions write/read, Payment Intents read and Charges read for session creation, webhook verification and receipts.
 - `STRIPE_MODE`: `test` (default), explicitly `live` for activation.
 - `STRIPE_WEBHOOK_SECRET`: endpoint-specific `whsec_…` copied from Stripe Workbench. A CLI forwarding secret is only for that local listener.
 - `STRIPE_ALLOWED_ORIGINS`: comma-separated exact origins. Defaults to the two production origins. Sandbox mode additionally allows only the exact `codex/19-stripe-donations` Vercel branch preview; live mode excludes it. A configured value overrides these defaults, including an empty deny-all value. Local tests must explicitly add their localhost origin.

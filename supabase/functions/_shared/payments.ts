@@ -12,7 +12,7 @@ export function required(name: string) {
 export function paymentConfig() {
   const key = required('STRIPE_SECRET_KEY');
   const mode = Deno.env.get('STRIPE_MODE') || 'test';
-  if (!['test', 'live'].includes(mode) || !key.startsWith(`sk_${mode}_`)) throw new HttpError(503, 'Payment environment configuration mismatch.');
+  if (!['test', 'live'].includes(mode) || !['sk', 'rk'].some((type) => key.startsWith(`${type}_${mode}_`))) throw new HttpError(503, 'Payment environment configuration mismatch.');
   const origins = paymentOrigins(mode, Deno.env.get('STRIPE_ALLOWED_ORIGINS') ?? null);
   return { stripe: new Stripe(key, { httpClient: Stripe.createFetchHttpClient() }), livemode: mode === 'live', origins };
 }
