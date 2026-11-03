@@ -1,3 +1,4 @@
+import { programSummaryResult } from '@/lib/programCatalog';
 import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
@@ -127,6 +128,7 @@ function FacetMultiSelect({ label, options, selectedValues = [], onChange }) {
 export default function Programs() {
   const [programs, setPrograms] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [catalogFailure, setCatalogFailure] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState("card"); // 'card' | 'table' | 'map'
   const [tableSortColumn, setTableSortColumn] = useState('name');
@@ -193,6 +195,7 @@ export default function Programs() {
   const loadData = async () => {
     try {
       setLoading(true);
+      setCatalogFailure("");
       
       const { data: { session } } = await supabase.auth.getSession();
       const currentUser = session?.user;
@@ -268,10 +271,7 @@ export default function Programs() {
         }
       }
 
-      const { data: programsData, error } = await supabase
-        .from('programs')
-        .select('*')
-        .neq('internal_status', 'deleted');
+      const { data: programsData, error } = await programSummaryResult();
         
       if (error) throw error;
       
@@ -285,6 +285,7 @@ export default function Programs() {
       setLoading(false);
     } catch (error) {
       console.error("Error loading data:", error);
+      setCatalogFailure(error.message);
       setLoading(false);
     }
   };
@@ -727,6 +728,7 @@ export default function Programs() {
             subtitle="Explore active municipal pilots, Web3 daily claim protocols, and community-funded basic income distributions worldwide."
           />
 
+          {catalogFailure && <p role="alert" className="rounded-lg bg-red-50 p-4 text-red-700">{catalogFailure}</p>}
           {/* ========================================================================= */}
           {/* FILTER CONTROLS: EITHER QUICK SELECT OR ADVANCED FILTERS */}
           {/* ========================================================================= */}

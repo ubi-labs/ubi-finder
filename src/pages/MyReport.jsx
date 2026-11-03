@@ -1,3 +1,4 @@
+import { programSummaryResult } from '@/lib/programCatalog';
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/lib/AuthContext";
@@ -157,10 +158,7 @@ export default function MyReport() {
       setProfile(userProfile);
 
       // 2. Fetch all programs
-      const { data: progs } = await supabase
-        .from("programs")
-        .select("*")
-        .neq("internal_status", "deleted");
+      const { data: progs } = await programSummaryResult();
 
       const programsList = progs || [];
       setAllPrograms(programsList);

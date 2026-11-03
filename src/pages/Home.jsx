@@ -1,3 +1,4 @@
+import { catalogPage } from '@/lib/programCatalog';
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
@@ -31,12 +32,8 @@ export default function Home() {
   useEffect(() => {
     const fetchFeatured = async () => {
       try {
-        const { data, error } = await supabase
-          .from('programs')
-          .select('*')
-          .neq('internal_status', 'deleted')
-          .limit(4);
-        if (!error && data) {
+        const { programs: data } = await catalogPage({ limit: 4 });
+        if (data) {
           setFeaturedPrograms(data.filter(p => p.internal_status !== 'deleted'));
         }
       } catch (err) {

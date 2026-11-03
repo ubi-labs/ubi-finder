@@ -33,20 +33,20 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
-import { 
-  ChevronLeft, 
-  Save, 
-  Plus, 
-  X, 
-  LockKeyhole, 
-  Link2, 
-  Globe, 
-  Search, 
-  CheckCircle2, 
-  AlertCircle, 
-  Info, 
-  Sparkles, 
-  UserCheck 
+import {
+  ChevronLeft,
+  Save,
+  Plus,
+  X,
+  LockKeyhole,
+  Link2,
+  Globe,
+  Search,
+  CheckCircle2,
+  AlertCircle,
+  Info,
+  Sparkles,
+  UserCheck
 } from "lucide-react";
 
 const COUNTRIES = [
@@ -74,12 +74,12 @@ const COUNTRIES = [
 ];
 
 const US_STATES = [
-  "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", 
-  "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", 
-  "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", 
-  "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", 
-  "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", 
-  "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", 
+  "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut",
+  "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa",
+  "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan",
+  "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire",
+  "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma",
+  "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee",
   "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming",
   "District of Columbia"
 ];
@@ -100,7 +100,7 @@ export default function SubmitProgramPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loginAlertOpen, setLoginAlertOpen] = useState(false);
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
-  
+
   // Confirmation gate: User must acknowledge checking the database before editing form
   const [hasSearchedConfirmation, setHasSearchedConfirmation] = useState(false);
   const [acknowledgmentChecked, setAcknowledgmentChecked] = useState(false);
@@ -113,7 +113,7 @@ export default function SubmitProgramPage() {
 
   // Additional link URLs (papers, news, studies)
   const [additionalLinks, setAdditionalLinks] = useState([]);
-  
+
   const [formData, setFormData] = useState({
     program_id: 0,
     name: "",
@@ -154,7 +154,7 @@ export default function SubmitProgramPage() {
       if (userData) {
         setUser(userData);
         setIsAuthenticated(true);
-        loadNextProgramId();
+
       } else {
         setUser(null);
         setIsAuthenticated(false);
@@ -172,20 +172,6 @@ export default function SubmitProgramPage() {
     navigate("/login?view=signup&redirectTo=/Submit-Program");
   };
 
-  const loadNextProgramId = async () => {
-    try {
-      const { data: programs } = await supabase.from('programs').select('program_id');
-      const maxId = programs && programs.length > 0 
-        ? Math.max(...programs.map(p => p.program_id || 0))
-        : 0;
-      setFormData(prev => ({
-        ...prev,
-        program_id: maxId + 1
-      }));
-    } catch (error) {
-      console.error("Error loading program ID:", error);
-    }
-  };
 
   const handleChange = (field, value) => {
     setFormData(prev => ({
@@ -258,7 +244,7 @@ export default function SubmitProgramPage() {
       available_regions: newRegions
     }));
   };
-  
+
   const handleSelectState = (state) => {
     if (!state) return;
     if (!requiredStates.includes(state)) {
@@ -286,9 +272,9 @@ export default function SubmitProgramPage() {
       required_states: newStates
     }));
   };
-  
+
   const showStatesSelector = !isGlobal && regions.some(r => r === "United States" || r === "Canada");
-  
+
   const getStateOptions = () => {
     if (regions.includes("United States") && regions.includes("Canada")) {
       return [...US_STATES, ...CANADIAN_PROVINCES];
@@ -302,7 +288,7 @@ export default function SubmitProgramPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!isAuthenticated) {
       setLoginAlertOpen(true);
       return;
@@ -315,29 +301,18 @@ export default function SubmitProgramPage() {
         setLoginAlertOpen(true);
         return;
       }
-      
+
       // Look up profile safely
       let userProfileId = userData.user_metadata?.profile_id || localStorage.getItem("user_profile_id");
       if (!userProfileId && userData.id) {
         const { data: profs } = await supabase.from('user_profiles').select('id').eq('created_by_id', userData.id);
         if (profs && profs.length > 0) userProfileId = profs[0].id;
       }
-      
-      // Ensure program_id is a number and not null
-      let programId = formData.program_id;
-      if (!programId || isNaN(programId)) {
-        const { data: programs } = await supabase.from('programs').select('program_id');
-        const maxId = programs && programs.length > 0 
-          ? Math.max(...programs.map(p => p.program_id || 0))
-          : 0;
-        programId = maxId + 1;
-      }
-      programId = Number.parseInt(String(programId), 10);
 
       const sanitizedMonthlyAmount = formData.monthly_amount_usd !== "" && !isNaN(Number(formData.monthly_amount_usd))
         ? Number(formData.monthly_amount_usd)
         : 0;
-      
+
       const finalRegions = isGlobal ? ["Global"] : (regions.length > 0 ? regions : ["Global"]);
 
       // Combine sources / links
@@ -376,7 +351,7 @@ export default function SubmitProgramPage() {
         status: finalStatus,
         website: formData.website,
         sources: allSources,
-        program_id: programId,
+
         submitter_email: userData.email,
         verified: false
       }]);
@@ -384,7 +359,7 @@ export default function SubmitProgramPage() {
       // Create program manager record if possible
       if (userProfileId) {
         await supabase.from('program_managers').insert([{
-          program_id: programId,
+
           user_email: userData.email,
           user_profile_id: userProfileId,
           role: "owner",
@@ -394,7 +369,7 @@ export default function SubmitProgramPage() {
 
       // Notify platform admins & owners of the new submission
       notifyAdminsOfNewSubmission({
-        program_id: programId,
+
         name: formData.name,
         organization: formData.organization,
         submitter_email: userData.email,
@@ -439,7 +414,7 @@ export default function SubmitProgramPage() {
               <p className="text-gray-600 text-sm">
                 To ensure the quality and accuracy of our database, we require contributors to create a free account before submitting new programs.
               </p>
-              <Button 
+              <Button
                 onClick={handleLogin}
                 className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-5 cursor-pointer"
               >
@@ -466,8 +441,8 @@ export default function SubmitProgramPage() {
     <div className="min-h-screen bg-gradient-to-b from-green-50 via-white to-yellow-50 px-4 py-12">
       <div className="max-w-3xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             className="text-green-700 cursor-pointer"
             onClick={() => navigate("/Programs")}
           >
@@ -565,7 +540,7 @@ export default function SubmitProgramPage() {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-4">
-                  
+
                   {/* Connection / Submitter Role Radio Options */}
                   <div className="p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100/80 space-y-3">
                     <Label className="text-xs sm:text-sm font-bold text-emerald-950 flex items-center gap-2">
@@ -577,7 +552,7 @@ export default function SubmitProgramPage() {
                       onValueChange={(val) => handleChange("submission_role", val)}
                       className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1"
                     >
-                      <div 
+                      <div
                         onClick={() => handleChange("submission_role", "know_of")}
                         className={`flex items-center space-x-3 p-3 rounded-xl border transition-all cursor-pointer ${
                           formData.submission_role === "know_of"
@@ -591,7 +566,7 @@ export default function SubmitProgramPage() {
                         </Label>
                       </div>
 
-                      <div 
+                      <div
                         onClick={() => handleChange("submission_role", "involved")}
                         className={`flex items-center space-x-3 p-3 rounded-xl border transition-all cursor-pointer ${
                           formData.submission_role === "involved"
@@ -851,7 +826,7 @@ export default function SubmitProgramPage() {
               </div>
 
               <Separator className="my-6" />
-              
+
               <div>
                 <h3 className="text-lg font-bold text-green-800 mb-4">Eligibility Requirements</h3>
                 <div className="space-y-6">
@@ -865,7 +840,7 @@ export default function SubmitProgramPage() {
                       placeholder="Leave empty if no income limit / unconditional"
                     />
                   </div>
-                  
+
                   {/* Gender Requirement (Optional / Universal by default) */}
                   <div>
                     <Label className="font-semibold">Gender Requirement (optional)</Label>
@@ -917,7 +892,7 @@ export default function SubmitProgramPage() {
                   {/* Available Regions with Separate Global Checkmark */}
                   <div>
                     <Label className="font-semibold mb-2 block">Available Regions</Label>
-                    
+
                     {/* Global Checkbox */}
                     <div className="flex items-start space-x-3 p-3.5 bg-green-50/80 rounded-xl border border-green-200 mb-3">
                       <input
@@ -957,9 +932,9 @@ export default function SubmitProgramPage() {
                               ))}
                             </SelectContent>
                           </Select>
-                          <Button 
-                            type="button" 
-                            onClick={addRegion} 
+                          <Button
+                            type="button"
+                            onClick={addRegion}
                             disabled={isGlobal || !selectedCountry}
                             className="cursor-pointer"
                           >
@@ -1060,7 +1035,7 @@ export default function SubmitProgramPage() {
                 >
                   Cancel
                 </Button>
-                <Button 
+                <Button
                   type="submit"
                   className="bg-green-700 hover:bg-green-800 cursor-pointer font-bold"
                   disabled={submitting}

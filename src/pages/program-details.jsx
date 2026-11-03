@@ -1,3 +1,4 @@
+import { programDetail } from '@/lib/programCatalog';
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useLocation, useNavigate, Link } from "react-router-dom";
@@ -177,6 +178,7 @@ export default function ProgramDetailsPage() {
   const programId = location.state?.programId || queryProgramId;
   
   const [program, setProgram] = useState(null);
+  const [catalogFailure, setCatalogFailure] = useState("");
   const [relatedPrograms, setRelatedPrograms] = useState([]);
   const [blogPosts, setBlogPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -241,11 +243,8 @@ export default function ProgramDetailsPage() {
       }
       
       // 2. Load program data
-      const { data: programData, error: programError } = await supabase
-        .from('programs')
-        .select('*')
-        .eq('program_id', parseInt(programId))
-        .single();
+      const programData = await programDetail(programId);
+      const programError = null;
         
       if (programError || !programData || programData.internal_status === 'deleted') {
         console.error("Program not found or archived:", programError);
@@ -324,6 +323,7 @@ export default function ProgramDetailsPage() {
       setLoading(false);
     } catch (error) {
       console.error("Error loading program details:", error);
+      setCatalogFailure(error.message);
       setLoading(false);
     }
   };
@@ -551,7 +551,8 @@ export default function ProgramDetailsPage() {
   if (!program) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">Program not found.</p>
+        <p className="text-gray-700">{catalogFailure || 'Program not found.'}</p>
+        {catalogFailure && <Link className="mt-4 inline-block text-green-700 underline" to={`/login?redirectTo=${encodeURIComponent('/program-details?id=' + programId)}`}>Sign in or create an account</Link>}
       </div>
     );
   }

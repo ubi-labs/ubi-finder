@@ -39,7 +39,7 @@ jobs:
         deno-version: v2.x
 
     - name: Verify payment Edge Functions
-      run: deno test --node-modules-dir=none --no-lock --allow-env supabase/functions/tests/payments_test.ts
+      run: deno test --node-modules-dir=none --no-lock --allow-env supabase/functions/tests/payments_test.ts supabase/functions/tests/abuse_test.ts
 
     - name: Build application
       run: npm run build

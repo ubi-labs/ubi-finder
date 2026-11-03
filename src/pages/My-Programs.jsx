@@ -1,3 +1,4 @@
+import { programSummaries } from '@/lib/programCatalog';
 
 
 
@@ -73,7 +74,7 @@ export default function MyProgramsPage() {
       }
 
       // Get full program details
-      const allPrograms = (await supabase.from('programs').select('*')).data;
+      const allPrograms = await programSummaries();
       const accessiblePrograms = allPrograms.filter(p => 
         programIds.includes(p.program_id)
       );

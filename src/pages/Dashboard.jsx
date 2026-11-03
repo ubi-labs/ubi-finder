@@ -1,3 +1,4 @@
+import { programSummaries } from '@/lib/programCatalog';
 import { supabase } from "@/lib/supabaseClient";
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -147,7 +148,7 @@ export default function Dashboard() {
         setUserProfile(currentProf);
       }
 
-      const allPrograms = (await supabase.from('programs').select('*')).data;
+      const allPrograms = await programSummaries();
       const activePrograms = (allPrograms || []).filter(p => p.internal_status !== 'deleted');
       setPrograms(activePrograms);
 

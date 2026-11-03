@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("public home, catalog, and detail pages use local fixtures", async ({ page }) => {
+test("public discovery uses summaries and full details require verified sign-in", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Find Income Support Programs" })).toBeVisible();
 
@@ -13,7 +13,8 @@ test("public home, catalog, and detail pages use local fixtures", async ({ page 
   expect(programName).toBeTruthy();
   await firstProgram.click();
   await expect(page).toHaveURL(/\/program-details$/);
-  await expect(page.getByText(programName, { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Sign in with a verified account to see full program details.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Sign in or create an account" })).toBeVisible();
 });
 
 test("eligibility answers persist across a reload", async ({ page }) => {
