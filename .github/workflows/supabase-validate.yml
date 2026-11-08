@@ -2,9 +2,13 @@ name: Supabase migration validation
 
 on:
   pull_request:
-    branches: [main]
+    branches: [dev, main]
     paths:
       - "supabase/**"
+      - "package-lock.json"
+      - "package.json"
+      - ".github/scripts/**"
+      - ".github/workflows/ci.yml"
       - "src/**"
       - "tests/acceptance/**"
       - "playwright.config.js"
@@ -53,9 +57,11 @@ jobs:
           set -a
           source "$RUNNER_TEMP/supabase.env"
           set +a
-          echo "VITE_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
-          echo "VITE_SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
-          echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
+          {
+            echo "VITE_SUPABASE_URL=$API_URL"
+            echo "VITE_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+          } >> "$GITHUB_ENV"
 
       - name: Test atomic donation fulfillment and privileges
         run: node tests/integration/stripe-donations.mjs

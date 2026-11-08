@@ -1,56 +1,135 @@
-name: Supabase Database Migration & Edge Functions
+name: Deploy UBI Finder
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'supabase/migrations/**'
-      - 'supabase/functions/**'
-      - '.github/workflows/supabase-migration.yml'
-  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+  deployments: read
 
 jobs:
-  migrate:
-    name: Apply Database Migrations & Deploy Functions
+  deploy:
+    name: Deploy Supabase and Vercel
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
-    environment: Production
+    timeout-minutes: 30
+    concurrency:
+      group: deploy-${{ github.ref_name }}
+      cancel-in-progress: false
+    environment:
+      name: ${{ github.ref_name == 'main' && 'Production' || 'Staging' }}
+      url: ${{ steps.frontend.outputs.url }}
     env:
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-      SUPABASE_PROJECT_ID: ${{ vars.SUPABASE_PROJECT_ID }}
+      DEPLOY_SUPABASE_PROJECT_ID: ${{ vars.DEPLOY_SUPABASE_PROJECT_ID }}
+      PRODUCTION_SUPABASE_PROJECT_ID: ${{ vars.SUPABASE_PROJECT_ID }}
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout release
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
-      - name: Setup Supabase CLI
+      - name: Verify release and target
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ ! "$DEPLOY_SUPABASE_PROJECT_ID" =~ ^[a-z]{20}$ ||
+                ! "$PRODUCTION_SUPABASE_PROJECT_ID" =~ ^[a-z]{20}$ ||
+                -z "$VERCEL_ORG_ID" || -z "$VERCEL_PROJECT_ID" ]]; then
+            echo "::error::Missing or invalid environment deployment configuration."
+            exit 1
+          fi
+          if [[ "$GITHUB_REF_NAME" == main ]]; then
+            if [[ "$DEPLOY_SUPABASE_PROJECT_ID" != "$PRODUCTION_SUPABASE_PROJECT_ID" ]]; then
+              echo "::error::Production target differs from the live Supabase project."
+              exit 1
+            fi
+            if ! candidate_sha=$(git rev-parse --verify 'HEAD^2'); then
+              echo "::error::Production requires a merge commit from dev."
+              exit 1
+            fi
+            bash .github/scripts/check-staged-release.sh "$candidate_sha"
+          elif [[ "$DEPLOY_SUPABASE_PROJECT_ID" == "$PRODUCTION_SUPABASE_PROJECT_ID" ]]; then
+            echo "::error::Staging cannot target the live Supabase project."
+            exit 1
+          fi
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Build frontend for the selected backend
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          : "${VERCEL_TOKEN:?Configure VERCEL_TOKEN in the selected environment}"
+          npm install --global vercel@59.25.0
+          target=preview
+          pull_args=(--git-branch dev)
+          build_args=()
+          if [[ "$GITHUB_REF_NAME" == main ]]; then
+            target=production
+            pull_args=()
+            build_args=(--prod)
+          fi
+          vercel pull --yes --environment="$target" "${pull_args[@]}" --token="$VERCEL_TOKEN"
+          node --env-file=".vercel/.env.$target.local" --input-type=module - <<'NODE'
+          const { VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, DEPLOY_SUPABASE_PROJECT_ID } = process.env;
+          const expected = `https://${DEPLOY_SUPABASE_PROJECT_ID}.supabase.co`;
+          if (VITE_SUPABASE_URL?.replace(/\/$/, "") !== expected || !VITE_SUPABASE_ANON_KEY) {
+            throw new Error("Vercel frontend configuration does not match the deployment target");
+          }
+          NODE
+          vercel build --yes "${build_args[@]}" --token="$VERCEL_TOKEN"
+
+      - name: Prepare production deployment before applying backend changes
+        if: github.ref_name == 'main'
+        id: production
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          url=$(vercel deploy --yes --prebuilt --prod --skip-domain --token="$VERCEL_TOKEN")
+          printf 'url=%s\n' "$url" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Supabase CLI
         uses: supabase/setup-cli@v1
         with:
           version: 2.116.0
 
-      - name: Check Secrets
+      - name: Apply migrations and deploy Edge Functions
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
-          if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_DB_PASSWORD" ] || [ -z "$SUPABASE_PROJECT_ID" ]; then
-            echo "::error title=Missing Supabase configuration::SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD, and SUPABASE_PROJECT_ID must be configured in the Production environment."
+          : "${SUPABASE_ACCESS_TOKEN:?Configure SUPABASE_ACCESS_TOKEN in the selected environment}"
+          : "${SUPABASE_DB_PASSWORD:?Configure SUPABASE_DB_PASSWORD in the selected environment}"
+          current=$(git ls-remote --exit-code origin "$GITHUB_REF" | cut -f1)
+          if [[ "$current" != "$GITHUB_SHA" ]]; then
+            echo "::error::The branch advanced while this deployment was queued. Deploy the current head."
             exit 1
           fi
-          echo "Supabase secrets found and loaded."
-
-      - name: Link to Supabase Project
-        run: |
-          supabase link --project-ref "$SUPABASE_PROJECT_ID" --password "$SUPABASE_DB_PASSWORD"
-
-      - name: Push Database Migrations
-        run: |
+          supabase link --project-ref "$DEPLOY_SUPABASE_PROJECT_ID" --password "$SUPABASE_DB_PASSWORD"
           supabase db push --password "$SUPABASE_DB_PASSWORD"
-
-      - name: Deploy All Edge Functions
-        run: |
-          for func_dir in supabase/functions/*; do
-            if [ -f "$func_dir/index.ts" ]; then
-              func_name=$(basename "$func_dir")
-              echo "Deploying Edge Function: $func_name"
-              supabase functions deploy "$func_name" --project-ref "$SUPABASE_PROJECT_ID" --no-verify-jwt
-            fi
+          for entrypoint in supabase/functions/*/index.ts; do
+            [[ -f "$entrypoint" ]] || continue
+            function_dir=${entrypoint%/index.ts}
+            supabase functions deploy "${function_dir##*/}" --project-ref "$DEPLOY_SUPABASE_PROJECT_ID" --no-verify-jwt
           done
+
+      - name: Publish frontend
+        id: frontend
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          PRODUCTION_URL: ${{ steps.production.outputs.url }}
+        run: |
+          if [[ "$GITHUB_REF_NAME" == main ]]; then
+            vercel promote "$PRODUCTION_URL" --yes --token="$VERCEL_TOKEN"
+            url="$PRODUCTION_URL"
+          else
+            url=$(vercel deploy --yes --prebuilt --token="$VERCEL_TOKEN")
+          fi
+          printf 'url=%s\n' "$url" >> "$GITHUB_OUTPUT"

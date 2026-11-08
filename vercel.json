@@ -10,7 +10,9 @@
   ],
   "git": {
     "deploymentEnabled": {
-      "dev": false
+      "main": false,
+      "dev": false,
+      "codex/staging-production-pipeline": false
     }
   }
 }
