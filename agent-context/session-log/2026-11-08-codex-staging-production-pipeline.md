@@ -17,3 +17,12 @@
 - **Summary:** Created the GitHub Staging environment and restricted deployments to branch `dev`. No credentials were installed and the default branch remains `main`.
 - **Validation:** Read back the custom deployment branch policy and the sole `dev` branch rule.
 - **Follow-ups:** Select and verify the staging Supabase project before installing credentials, publishing the pipeline, or changing the default branch.
+
+## 2026-11-08 — Verify project mapping and permissions
+
+- **Agent and branch:** Codex, `codex/staging-production-pipeline`.
+- **Pre-commit head:** `534d830`.
+- **Issue:** User-requested Supabase production rename and staging provisioning. No linked issue.
+- **Summary:** Confirmed the live frontend still uses project `oinubdnkqnifeaaejmjl` in the Free plan UBI-Finder Org in Canada Central. Supabase returned HTTP 403 for both the display-name rename and the separate staging project creation. Management API membership confirms the active account is a Developer. Both project changes need an organization Owner or Administrator.
+- **Validation:** Read back the unchanged Supabase inventory and verified the live frontend returned HTTP 200. In GitHub, set the Production environment backend reference and the verified Vercel team and project identifiers for both environments. Read back the variable names. GitHub still defaults to main and Staging remains restricted to dev.
+- **Follow-ups:** After the Supabase permission handoff, verify the production rename preserves the project reference. Configure the new staging ref and scoped CI credentials, then deploy and validate staging before the branch cutover.
