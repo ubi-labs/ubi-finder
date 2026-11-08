@@ -2,9 +2,13 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [dev, main]
   pull_request:
-    branches: [ main ]
+    branches: [dev, main]
+
+permissions:
+  contents: read
+  deployments: read
 
 jobs:
   quality:
@@ -46,3 +50,30 @@ jobs:
       env:
         VITE_SUPABASE_URL: https://example.supabase.co
         VITE_SUPABASE_ANON_KEY: anon-key-placeholder
+
+  promotion:
+    name: Verify staged release
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+      HEAD_BRANCH: ${{ github.head_ref }}
+      CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - name: Check out the proposed merge
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Verify staging source and merge tree
+        run: |
+          if [[ "$HEAD_REPOSITORY" != "$GITHUB_REPOSITORY" || "$HEAD_BRANCH" != dev ]]; then
+            echo "::error::Production PRs must come from this repository's dev branch."
+            exit 1
+          fi
+          bash .github/scripts/check-staged-release.sh "$CANDIDATE_SHA"
+
+  deploy:
+    if: github.event_name == 'push'
+    needs: quality
+    uses: ./.github/workflows/supabase-migration.yml
