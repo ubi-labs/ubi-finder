@@ -51,7 +51,9 @@ assigning the domains to the new frontend.
 
 1. Record the current live frontend deployment and the production Supabase
    migration and function inventory. Use current `main` as the initial
-   commit of `dev`. Keep current `main` as the production branch. The older
+   baseline for `dev`. The initial dev commit disables automatic Vercel
+   Git deployment while its staging-specific variables are installed. Keep
+   current `main` as the production branch. The older
    `main-new` pointer predates the live Stripe fix.
 2. Configure a separate staging Supabase project. Prepare staging-specific
    seed data, Auth settings, provider sandbox credentials and redirect URLs

@@ -11,7 +11,8 @@
   "git": {
     "deploymentEnabled": {
       "main": false,
-      "dev": false
+      "dev": false,
+      "codex/staging-production-pipeline": false
     }
   }
 }

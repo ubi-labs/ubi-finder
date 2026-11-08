@@ -26,3 +26,12 @@
 - **Summary:** Confirmed the live frontend still uses project `oinubdnkqnifeaaejmjl` in the Free plan UBI-Finder Org in Canada Central. Supabase returned HTTP 403 for both the display-name rename and the separate staging project creation. Management API membership confirms the active account is a Developer. Both project changes need an organization Owner or Administrator.
 - **Validation:** Read back the unchanged Supabase inventory and verified the live frontend returned HTTP 200. In GitHub, set the Production environment backend reference and the verified Vercel team and project identifiers for both environments. Read back the variable names. GitHub still defaults to main and Staging remains restricted to dev.
 - **Follow-ups:** After the Supabase permission handoff, verify the production rename preserves the project reference. Configure the new staging ref and scoped CI credentials, then deploy and validate staging before the branch cutover.
+
+## 2026-11-08 — Prepare staging branch and CI review
+
+- **Agent and branch:** Codex, `codex/staging-production-pipeline`.
+- **Pre-commit head:** Local pipeline rebased onto the guarded `dev` bootstrap commit `650edb0`.
+- **Issue:** User-requested staging verification. No linked issue.
+- **Summary:** Verified both Canada Central project identities and the production frontend reference. Set GitHub's Staging target to `vyfhercljsvhyfqfvuys`. Vercel requires an existing Git branch before accepting a branch-specific Preview variable. The initial dev commit disables automatic deployment so the new branch cannot build with shared production settings. This PR branch also disables its automatic Preview build.
+- **Validation:** Read back Supabase status and GitHub environment scope. Verified the live site responds HTTP 200 with the production reference. Checked the workflow with actionlint.
+- **Follow-ups:** Install dev-specific Vercel settings and staging CI secrets, merge the reviewed pipeline into dev, and validate the resulting deployment before changing the default.
