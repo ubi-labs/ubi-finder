@@ -44,3 +44,14 @@
 - **Summary:** Created the guarded dev branch and verified its Vercel Preview settings. Deployed the baseline frontend and five Edge Functions to staging, and applied migrations 00001–00040. Staging's public catalog returned PostgreSQL 42501 because fresh projects require explicit Data API grants. Added migration 00041 to declare grants for existing client and service calls while preserving row-level policies.
 - **Validation:** Applied only migration 00041 to staging after confirming its exact dry-run plan. Anonymous catalog, blog, and program group reads passed. The deployed Vercel preview served the homepage and /Programs and its JavaScript points to the staging backend. Local lint, typecheck, 98 unit tests, and build passed. Added an anonymous catalog assertion to the integration suite and preserved its private donation check for both legacy and explicit grants. Clean-reset and lint CI for this commit are pending.
 - **Follow-ups:** Verify the reviewed PR and the automatic dev deployment before changing the GitHub default. PR #43 uses migration number 00041 in its draft and needs a distinct version when updated against dev.
+
+## 2026-11-08 — Pass environment secrets to the deployment job
+
+- **Agent and branch:** Codex, `codex/staging-production-pipeline`.
+- **Pre-commit head:** `f5bc314598fc5a4dde222bbe65bc9d66c7c56271`.
+- **Issue:** User-requested staging cutover. Follow-up to PR #44.
+- **Summary:** The deployment rerun after installing all three Staging secrets still had an empty VERCEL_TOKEN. GitHub requires the caller to pass environment secret names even when the called job selects the environment. Map the three names explicitly and keep values in the deployment environments.
+- **Validation:** Confirmed secret names and branch SHA, inspected the failed runner step, and ran actionlint and git diff checks.
+- **Follow-ups:** Validate the corrected push on dev and test its hosted preview before changing the default branch.
+
+- **Documentation follow-up (pre-commit head `dffaa17`):** Updated the repository guide to use dev for integration and main for production promotion. Checked the guide diff against the deployment runbook.
