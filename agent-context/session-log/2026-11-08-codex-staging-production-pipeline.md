@@ -35,3 +35,12 @@
 - **Summary:** Verified both Canada Central project identities and the production frontend reference. Set GitHub's Staging target to `vyfhercljsvhyfqfvuys`. Vercel requires an existing Git branch before accepting a branch-specific Preview variable. The initial dev commit disables automatic deployment so the new branch cannot build with shared production settings. This PR branch also disables its automatic Preview build.
 - **Validation:** Read back Supabase status and GitHub environment scope. Verified the live site responds HTTP 200 with the production reference. Checked the workflow with actionlint.
 - **Follow-ups:** Install dev-specific Vercel settings and staging CI secrets, merge the reviewed pipeline into dev, and validate the resulting deployment before changing the default.
+
+## 2026-11-08 — Rehearse the hosted staging deployment
+
+- **Agent and branch:** Codex, `codex/staging-production-pipeline`.
+- **Pre-commit head:** `b4453ec8e902261b7da520a2487d5b3bb9b51e2e`.
+- **Issue:** User-requested staging verification. PR #44.
+- **Summary:** Created the guarded dev branch and verified its Vercel Preview settings. Deployed the baseline frontend and five Edge Functions to staging, and applied migrations 00001–00040. Staging's public catalog returned PostgreSQL 42501 because fresh projects require explicit Data API grants. Added migration 00041 to declare grants for existing client and service calls while preserving row-level policies.
+- **Validation:** Applied only migration 00041 to staging after confirming its exact dry-run plan. Anonymous catalog, blog, and program group reads passed. The deployed Vercel preview served the homepage and /Programs and its JavaScript points to the staging backend. Local lint, typecheck, 98 unit tests, and build passed. Added an anonymous catalog assertion to the integration suite and preserved its private donation check for both legacy and explicit grants. Clean-reset and lint CI for this commit are pending.
+- **Follow-ups:** Verify the reviewed PR and the automatic dev deployment before changing the GitHub default. PR #43 uses migration number 00041 in its draft and needs a distinct version when updated against dev.
