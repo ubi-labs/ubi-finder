@@ -53,3 +53,5 @@
 - **Summary:** The deployment rerun after installing all three Staging secrets still had an empty VERCEL_TOKEN. GitHub requires the caller to pass environment secret names even when the called job selects the environment. Map the three names explicitly and keep values in the deployment environments.
 - **Validation:** Confirmed secret names and branch SHA, inspected the failed runner step, and ran actionlint and git diff checks.
 - **Follow-ups:** Validate the corrected push on dev and test its hosted preview before changing the default branch.
+
+- **Documentation follow-up (pre-commit head `dffaa17`):** Updated the repository guide to use dev for integration and main for production promotion. Checked the guide diff against the deployment runbook.
