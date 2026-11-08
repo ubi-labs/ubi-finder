@@ -55,3 +55,12 @@
 - **Follow-ups:** Validate the corrected push on dev and test its hosted preview before changing the default branch.
 
 - **Documentation follow-up (pre-commit head `dffaa17`):** Updated the repository guide to use dev for integration and main for production promotion. Checked the guide diff against the deployment runbook.
+
+## 2026-11-08 — Support the project-scoped Vercel token
+
+- **Agent and branch:** Codex, `codex/staging-production-pipeline`.
+- **Pre-commit head:** `5a7fbfb95eb9f6fcae22523e078ad05ef73b2e88`.
+- **Issue:** User-requested staging cutover. Follow-up to PR #45.
+- **Summary:** The deploy job received the Staging secret after PR #45. Vercel CLI 59.25.0 rejected project settings. The token metadata identifies it as project-scoped, matching Vercel CLI issue 17506. The published 65.12.1 package skips the owner lookup in the pull command, so retain the current token scope.
+- **Validation:** Checked the published package behavior. Vercel CLI 65.12.1 pulled the dev Preview variables, verified the staging target, and produced the prebuilt artifact locally. Actionlint and git diff checks passed. The project-scoped token is verified by the automatic deploy job.
+- **Follow-ups:** Verify the dev deploy result and smoke-test its preview before changing the default.
