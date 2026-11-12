@@ -319,15 +319,17 @@ describe('usage recording', () => {
     ['PROGRAM_DETAILS_VIEW', 10, 'programViews'],
     ['MAP_VIEW', 20, 'mapViews'],
     ['SEARCH_QUERY', 2, 'searchQueries'],
-  ])('accrues %s without changing other counters', async (action, weight, counter) => {
-    storeState();
-    const expected = { ...defaultState(), points: weight, [counter]: 1 };
+  ])('adds %s to the existing balance without changing other counters', async (action, weight, counter) => {
+    const previous = storeState({
+      points: 7, programViews: 2, mapViews: 3, searchQueries: 4,
+    });
+    const expected = { ...previous, points: previous.points + weight, [counter]: previous[counter] + 1 };
     expect(await points.recordUsageAction(action, user)).toMatchObject(expected);
     expect(storedState()).toEqual(expected);
     expect(upsert).toHaveBeenCalledWith({
       user_id: user.id,
       ip_hash: 'ip_fixture',
-      points_total: weight,
+      points_total: expected.points,
       program_views_count: expected.programViews,
       map_views_count: expected.mapViews,
       search_queries_count: expected.searchQueries,
