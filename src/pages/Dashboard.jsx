@@ -248,9 +248,9 @@ export default function Dashboard() {
 
   const checklistItems = [
     { label: "Account verified & authenticated", completed: true },
-    { label: "Complete eligibility profile details", completed: isProfileComplete, link: "/My-Report", action: "Edit Profile" },
-    { label: `Save at least 3 favorite programs (${favoritePrograms.length}/3)`, completed: hasSavedFavorites, link: "/Programs", action: "Browse" },
-    { label: "Explore community questions & discussions", completed: hasExploredCommunity, link: "/Community", action: "Visit Hub" },
+    { label: "Complete eligibility profile details", completed: isProfileComplete, link: "/my-report", action: "Edit Profile" },
+    { label: `Save at least 3 favorite programs (${favoritePrograms.length}/3)`, completed: hasSavedFavorites, link: "/programs", action: "Browse" },
+    { label: "Explore community questions & discussions", completed: hasExploredCommunity, link: "/community", action: "Visit Hub" },
   ];
 
   const completedCount = checklistItems.filter(item => item.completed).length;
@@ -271,13 +271,13 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
-            <Link to="/My-Report">
+            <Link to="/my-report">
               <Button className="bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs shadow-sm flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
                 View Personalized Report
               </Button>
             </Link>
-            <Link to="/Programs">
+            <Link to="/programs">
               <Button variant="outline" className="border-green-700 text-green-700 hover:bg-green-50 font-medium text-xs shadow-sm">
                 Browse All Programs &rarr;
               </Button>
@@ -299,7 +299,7 @@ export default function Dashboard() {
                 ))}
               </ul>
             </div>
-            <Link to="/My-Report">
+            <Link to="/my-report">
               <Button size="sm" variant="outline" className="border-emerald-700 text-emerald-900 text-[11px] h-7">
                 Review Report
               </Button>
@@ -428,7 +428,7 @@ export default function Dashboard() {
                       Tailored to your location, demographics & favorites
                     </CardDescription>
                   </div>
-                  <Link to="/My-Report">
+                  <Link to="/my-report">
                     <Button
                       variant="outline"
                       className="border-green-600 text-green-700 hover:bg-green-50 text-xs h-8"

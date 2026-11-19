@@ -152,7 +152,7 @@ export default function ManageProgramPage() {
         await loadProgramData(programId, userData.email);
       } else {
         setLoading(false);
-        navigate("/Programs");
+        navigate("/programs");
       }
     } catch (error) {
       setUser(null);
@@ -168,7 +168,7 @@ export default function ManageProgramPage() {
       // The page will reload after login
     } catch (error) {
       console.error("Login failed:", error);
-      navigate("/Programs");
+      navigate("/programs");
     }
   };
 
@@ -246,7 +246,7 @@ export default function ManageProgramPage() {
     } catch (error) {
       console.error("Error loading program:", error);
       setLoading(false);
-      navigate("/Programs");
+      navigate("/programs");
     }
   };
 
@@ -342,7 +342,7 @@ export default function ManageProgramPage() {
 
       setUpdateSuccess(true);
       setTimeout(() => {
-        navigate("/Programs");
+        navigate("/programs");
       }, 2000);
     } catch (error) {
       console.error("Error updating program:", error);
@@ -429,7 +429,7 @@ export default function ManageProgramPage() {
   };
 
   const handleWriteBlog = () => {
-    navigate("/Write-Blog", { 
+    navigate("/write-blog", {
       state: { 
         program: {
           id: programId,
@@ -503,7 +503,7 @@ export default function ManageProgramPage() {
                 Only program owners, administrators, or site admins can manage program details.
               </p>
               <Button 
-                onClick={() => navigate("/Programs")}
+                onClick={() => navigate("/programs")}
                 className="bg-green-700 hover:bg-green-800"
               >
                 Return to Programs
@@ -522,7 +522,7 @@ export default function ManageProgramPage() {
           <Button 
             variant="ghost" 
             className="text-green-700"
-            onClick={() => navigate("/Programs")}
+            onClick={() => navigate("/programs")}
           >
             <ChevronLeft className="w-5 h-5 mr-1" />
             Back to Programs
@@ -999,7 +999,7 @@ export default function ManageProgramPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => navigate("/Programs")}
+                  onClick={() => navigate("/programs")}
                 >
                   Cancel
                 </Button>
@@ -1064,7 +1064,7 @@ export default function ManageProgramPage() {
                   <div 
                     key={post.id}
                     className="p-4 border rounded-lg hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 cursor-pointer bg-white"
-                    onClick={() => navigate("/BlogPost", { state: { postId: post.id, from: 'manage' } })}
+                    onClick={() => navigate("/blogpost", { state: { postId: post.id, from: 'manage' } })}
                   >
                     {post.image_url && (
                       <img 
@@ -1137,7 +1137,7 @@ export default function ManageProgramPage() {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogAction onClick={() => navigate("/Programs")}>
+              <AlertDialogAction onClick={() => navigate("/programs")}>
                 Back to Programs
               </AlertDialogAction>
             </AlertDialogFooter>

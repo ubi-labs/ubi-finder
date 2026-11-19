@@ -866,7 +866,7 @@ export default function Programs() {
                   </button>
                 </div>
 
-                <Link to={user ? "/Submit-Program" : "/login?view=signup&redirectTo=/Submit-Program"} className="flex-shrink-0">
+                <Link to={user ? "/submit-program" : "/login?view=signup&redirectTo=/submit-program"} className="flex-shrink-0">
                   <Button className="bg-green-700 hover:bg-green-800 text-xs shadow-sm h-8 cursor-pointer">
                     <Plus className="w-3.5 h-3.5 mr-1" />
                     Submit Program
@@ -1124,7 +1124,7 @@ export default function Programs() {
                     </p>
                   </div>
                 </div>
-                <Link to="/login?view=signup&redirectTo=/Programs" className="flex-shrink-0">
+                <Link to="/login?view=signup&redirectTo=/programs" className="flex-shrink-0">
                   <Button size="sm" className="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs px-4">
                     Sign In / Register &rarr;
                   </Button>
@@ -1150,7 +1150,7 @@ export default function Programs() {
                     </p>
                   </div>
                 </div>
-                <Link to="/My-Report" className="flex-shrink-0">
+                <Link to="/my-report" className="flex-shrink-0">
                   <Button size="sm" className="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs px-4">
                     Fill Out Eligibility Form &rarr;
                   </Button>
@@ -1176,7 +1176,7 @@ export default function Programs() {
                     </p>
                   </div>
                 </div>
-                <Link to="/My-Report" className="flex-shrink-0">
+                <Link to="/my-report" className="flex-shrink-0">
                   <Button size="sm" variant="outline" className="border-emerald-600 text-emerald-800 hover:bg-emerald-100 text-xs font-semibold">
                     View Personalized Report &rarr;
                   </Button>

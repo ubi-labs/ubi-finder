@@ -1,0 +1,15 @@
+# Lowercase application routes
+
+- Timestamp: 2026-11-18, America/Toronto.
+- Agent: codex:01a1b2bd-ec7d-76c2-98d3-0851cfd83848, UbiFinder HBIC.
+- Branch/worktree: codex/lowercase-routes; /Users/botmaster/src/scratch/ubi-finder-lowercase-routes.
+- Pre-commit head: 0fd345a04b71ebb5cb21057de838b461f5c2eb67 (current remote dev read back before work).
+- Issue: https://github.com/ubi-labs/ubi-finder/issues/47. Ledger T675.
+- Request: standardize app URLs on lowercase and redirect historical casing such as /Ecosystem.
+- Implementation: removed duplicate uppercase route definitions, added a recognized-path canonicalization boundary preserving search/hash/location state and replacing history, updated page URL generation, internal navigation/auth return targets and sitemap, and declared26 permanent Vercel redirects for legacy spellings. Unknown paths and assets retain case; query values/IDs/fragments are not lowercased. Existing lowercase semantic aliases remain available.
+- Delivery preparation: disabled automatic Vercel Git deployment for this exact feature branch, matching the repository's explicit CI delivery approach and avoiding an uncontrolled feature preview against an unverified backend. No other feature branch configuration changed.
+- Validation: npm run lint, typecheck, test:coverage and build pass.140 unit tests pass; new route and URL helpers have100% across all coverage metrics. All18 browser acceptance tests pass on a fresh isolated local Supabase backend, including3 new route regressions. Existing authenticated/public URL expectations now require lowercase. Config regression verifies permanent legacy mappings without self-redirects; router inventory and lowercase sitemap are also checked. Existing build chunk-size warning remains.
+- Runtime: independent dev-baseline inputs (41 migrations/seed; no #41 source changes or hosted linkage) under MiniBot session ubi47. Obtained an exclusive lease for project codex-ubi47-01a1b2bd-20261118, ports64320–64329. Stopped only that project after browser checks. Release proof is recorded below after the helper confirms zero state. Colima/Docker preserved.
+- Scope: unrelated canonical dirty files, #27 reviewed commit and #41 validated commit preserved. No database migration changes or production deployment. The legacy HTTP308 declarations are not a claim of live hosting verification. New /write-blog literals retain an already-existing unresolved destination; no blog authoring route is added.
+- Release proof: no project containers or family listeners remained after stop. The release helper independently confirmed zero state and returned active_leases=[]; no queue or active runtime ownership remains for this session.
+- Final source/config checks: git diff --check passes after removing inherited whitespace on changed lines. All42 route-focused unit checks pass after the exact feature-branch Git-preview guard was added. No application behavior changed after the full validation run; only documentation, preview guard and changed-line whitespace were adjusted.

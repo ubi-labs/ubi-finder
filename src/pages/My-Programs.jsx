@@ -83,16 +83,16 @@ export default function MyProgramsPage() {
     } catch (error) {
       console.error("Error loading programs:", error);
       setLoading(false);
-      navigate("/Programs");
+      navigate("/programs");
     }
   };
 
   const handleWriteBlog = (program) => {
-    navigate("/Write-Blog", { state: { program } });
+    navigate("/write-blog", { state: { program } });
   };
 
   const handleManageProgram = (programId) => {
-    navigate("/Manage-Program", { state: { programId } });
+    navigate("/manage-program", { state: { programId } });
   };
 
   if (loading) {
@@ -122,7 +122,7 @@ export default function MyProgramsPage() {
               <CardContent className="text-center py-12">
                 <p className="text-gray-500 mb-4">You don't have any programs to manage yet.</p>
                 <Button 
-                  onClick={() => navigate("/Submit-Program")}
+                  onClick={() => navigate("/submit-program")}
                   className="bg-green-700 hover:bg-green-800"
                 >
                   Submit Your First Program

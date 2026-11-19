@@ -43,7 +43,7 @@ export default function ApplicationsList({ applications = [] }) {
           </p>
         </div>
         <Link 
-          to="/Programs" 
+          to="/programs"
           className="inline-flex items-center gap-1.5 text-xs text-green-700 font-semibold hover:underline"
         >
           <PlusCircle className="w-3.5 h-3.5" />

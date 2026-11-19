@@ -27,7 +27,7 @@ export default function Footer() {
             <ul className="space-y-2 text-sm text-green-800/70">
               <li><Link to={createPageUrl("Programs")}>Browse Programs</Link></li>
               <li><Link to={createPageUrl("Submit-Program")}>Submit Program</Link></li>
-              <li><Link to="/Services">Enterprise Services</Link></li>
+              <li><Link to="/services">Enterprise Services</Link></li>
               <li><Link to={createPageUrl("My-Programs")}>Manage Programs</Link></li>
               <li><Link to={createPageUrl("Dashboard")}>My Dashboard</Link></li>
             </ul>
@@ -39,7 +39,7 @@ export default function Footer() {
               <li><Link to={createPageUrl("Blog")}>Blog</Link></li>
               <li><Link to={createPageUrl("Community")}>Community Forum</Link></li>
               <li><Link to={createPageUrl("About")}>About Us</Link></li>
-              <li><Link to="/Ecosystem">Ecosystem</Link></li>
+              <li><Link to="/ecosystem">Ecosystem</Link></li>
               <li><a href="mailto:support@firebelly.xyz">Contact Support</a></li>
             </ul>
           </div>

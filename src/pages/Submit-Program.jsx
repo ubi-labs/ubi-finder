@@ -169,7 +169,7 @@ export default function SubmitProgramPage() {
   };
 
   const handleLogin = () => {
-    navigate("/login?view=signup&redirectTo=/Submit-Program");
+    navigate("/login?view=signup&redirectTo=/submit-program");
   };
 
   const loadNextProgramId = async () => {
@@ -406,7 +406,7 @@ export default function SubmitProgramPage() {
 
       setSubmissionSuccess(true);
       setTimeout(() => {
-        navigate("/Programs");
+        navigate("/programs");
       }, 2000);
     } catch (error) {
       console.error("Error submitting program:", error);
@@ -449,7 +449,7 @@ export default function SubmitProgramPage() {
               <div className="pt-2 text-xs text-gray-500">
                 Already have an account?{" "}
                 <button
-                  onClick={() => navigate("/login?redirectTo=/Submit-Program")}
+                  onClick={() => navigate("/login?redirectTo=/submit-program")}
                   className="text-emerald-700 font-bold hover:underline cursor-pointer"
                 >
                   Sign in here
@@ -469,7 +469,7 @@ export default function SubmitProgramPage() {
           <Button 
             variant="ghost" 
             className="text-green-700 cursor-pointer"
-            onClick={() => navigate("/Programs")}
+            onClick={() => navigate("/programs")}
           >
             <ChevronLeft className="w-5 h-5 mr-1" />
             Back to Programs
@@ -512,7 +512,7 @@ export default function SubmitProgramPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => navigate("/Programs")}
+                    onClick={() => navigate("/programs")}
                     className="border-emerald-600 text-emerald-800 hover:bg-emerald-50 text-xs font-semibold h-8 cursor-pointer"
                   >
                     <Search className="w-3.5 h-3.5 mr-1.5 text-emerald-700" />
@@ -1055,7 +1055,7 @@ export default function SubmitProgramPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => navigate("/Programs")}
+                  onClick={() => navigate("/programs")}
                   className="cursor-pointer"
                 >
                   Cancel
@@ -1109,7 +1109,7 @@ export default function SubmitProgramPage() {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogAction onClick={() => navigate("/Programs")}>
+              <AlertDialogAction onClick={() => navigate("/programs")}>
                 Back to Programs
               </AlertDialogAction>
             </AlertDialogFooter>

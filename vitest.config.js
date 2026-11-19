@@ -24,6 +24,8 @@ export default defineConfig({
         "src/lib/matchDeltaService.js",
         "src/lib/programStatus.js",
         "src/lib/utils.js",
+        "src/lib/routePaths.js",
+        "src/utils/index.ts",
         "src/lib/donationStatus.js",
         "src/lib/supporterPoints.js",
         "src/lib/pendingProfile.js",

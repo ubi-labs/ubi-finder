@@ -27,7 +27,7 @@ export default function DashboardProfile({ user, profile, showEditButton = true 
                 View Profile
               </Button>
             </Link>
-            <Link to="/My-Report">
+            <Link to="/my-report">
               <Button
                 variant="outline"
                 className="border-green-600 text-green-700 hover:bg-green-50"

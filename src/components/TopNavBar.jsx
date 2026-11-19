@@ -90,31 +90,31 @@ export default function TopNavBar({ user, userProfile }) {
         <div className="flex-grow flex justify-center">
           <nav className="flex items-center gap-4">
             <Link 
-              to="/Programs"
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${getButtonStyles('/Programs')}`}
+              to="/programs"
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${getButtonStyles('/programs')}`}
             >
               Programs
             </Link>
             
             <Link 
-              to="/Blog"
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${getButtonStyles('/Blog')}`}
+              to="/blog"
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${getButtonStyles('/blog')}`}
             >
               Blog
             </Link>
             
             <Link 
-              to="/About"
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${getButtonStyles('/About')}`}
+              to="/about"
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${getButtonStyles('/about')}`}
             >
               About
             </Link>
 
             {user && (
               <Link 
-                to="/Dashboard"
+                to="/dashboard"
                 className={`px-4 py-2 rounded-md text-sm font-medium border border-green-700 transition-colors ${
-                  isActive('/Dashboard') 
+                  isActive('/dashboard')
                     ? 'bg-green-700 text-white' 
                     : 'text-green-700 hover:bg-green-50'
                 }`}
