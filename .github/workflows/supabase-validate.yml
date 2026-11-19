@@ -51,6 +51,9 @@ jobs:
       - name: Lint database
         run: supabase db lint --local --level error
 
+      - name: Test public profile name preservation
+        run: supabase test db
+
       - name: Export isolated runtime credentials
         run: |
           supabase status -o env > "$RUNNER_TEMP/supabase.env"

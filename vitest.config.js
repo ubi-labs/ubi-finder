@@ -26,6 +26,7 @@ export default defineConfig({
         "src/lib/utils.js",
         "src/lib/donationStatus.js",
         "src/lib/supporterPoints.js",
+        "src/lib/pendingProfile.js",
         "src/lib/stripe.js",
         "supabase/functions/_shared/payment-policy.js",
         "supabase/functions/_shared/donor-details.js",

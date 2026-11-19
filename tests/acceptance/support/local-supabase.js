@@ -34,7 +34,19 @@ export async function findAcceptanceUser(admin) {
 
 export async function removeAcceptanceUser(admin) {
   const existing = await findAcceptanceUser(admin);
-  if (!existing) return;
-  const { error } = await admin.auth.admin.deleteUser(existing.id);
+  if (existing) {
+    const { error } = await admin.auth.admin.deleteUser(existing.id);
+    if (error) throw error;
+  }
+  // Auth deletion does not cascade into this independently keyed public table.
+  // Also remove an orphan from a previous interrupted run of this exact local fixture.
+  const { data: publicUser, error: lookupError } = await admin.from("users")
+    .select("id").eq("email", acceptanceUser.email).maybeSingle();
+  if (lookupError) throw lookupError;
+  if (publicUser) {
+    const { error } = await admin.from("user_profiles").delete().eq("created_by_id", publicUser.id);
+    if (error) throw error;
+  }
+  const { error } = await admin.from("users").delete().eq("email", acceptanceUser.email);
   if (error) throw error;
 }
