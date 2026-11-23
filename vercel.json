@@ -13,7 +13,8 @@
       "main": false,
       "dev": false,
       "codex/staging-production-pipeline": false,
-      "codex/lowercase-routes": false
+      "codex/lowercase-routes": false,
+      "codex/sprint-1-staging": false
     }
   },
   "redirects": [
