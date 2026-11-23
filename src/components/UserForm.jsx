@@ -391,7 +391,7 @@ export default function UserForm({ onSubmit = null, onComplete = null, initialDa
         const { error } = await supabase.auth.signInWithOtp({
           email: email.trim(),
           options: {
-            emailRedirectTo: `${window.location.origin}/My-Report`,
+            emailRedirectTo: `${window.location.origin}/my-report`,
             data: {
               full_name: formData.name.trim(),
               display_name: formData.name.trim()

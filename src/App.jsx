@@ -6,6 +6,7 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
+import CanonicalPath from './components/CanonicalPath';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
@@ -67,69 +68,43 @@ const AuthenticatedApp = () => {
     <Routes>
       {/* Public Routes */}
       <Route path="/login" element={<Login />} />
-      <Route path="/Login" element={<Login />} />
       <Route path="/" element={<Home />} />
-      <Route path="/Home" element={<Home />} />
       <Route path="/home" element={<Home />} />
-      <Route path="/About" element={<About />} />
       <Route path="/about" element={<About />} />
-      <Route path="/Programs" element={<Programs />} />
       <Route path="/programs" element={<Programs />} />
-      <Route path="/Projects" element={<Programs />} />
       <Route path="/projects" element={<Programs />} />
-      <Route path="/Blog" element={<Blog />} />
       <Route path="/blog" element={<Blog />} />
-      <Route path="/BlogPost" element={<BlogPost />} />
       <Route path="/blogpost" element={<BlogPost />} />
       <Route path="/program-details" element={<ProgramDetailsPage />} />
-      <Route path="/Terms" element={<Terms />} />
       <Route path="/terms" element={<Terms />} />
-      <Route path="/Privacy" element={<Privacy />} />
       <Route path="/privacy" element={<Privacy />} />
-      <Route path="/Cookie-Policy" element={<CookiePolicy />} />
       <Route path="/cookie-policy" element={<CookiePolicy />} />
-      <Route path="/Disclaimer" element={<Disclaimer />} />
       <Route path="/disclaimer" element={<Disclaimer />} />
-      <Route path="/Accessibility" element={<Accessibility />} />
       <Route path="/accessibility" element={<Accessibility />} />
-      <Route path="/Community" element={<Community />} />
       <Route path="/community" element={<Community />} />
-      <Route path="/My-Report" element={<MyReport />} />
       <Route path="/my-report" element={<MyReport />} />
       <Route path="/report" element={<MyReport />} />
       <Route path="/claim/gooddollar" element={<GoodDollarClaim />} />
       <Route path="/claim/fundloop" element={<FundLoopClaim />} />
       <Route path="/claim/circles" element={<CirclesClaim />} />
-      <Route path="/Services" element={<ServicesPage />} />
       <Route path="/services" element={<ServicesPage />} />
-      <Route path="/Ecosystem" element={<EcosystemPage />} />
       <Route path="/ecosystem" element={<EcosystemPage />} />
       <Route path="/donate/success" element={<DonateSuccess />} />
-      <Route path="/Donate/Success" element={<DonateSuccess />} />
 
       {/* Authenticated-Only Protected Routes */}
       <Route element={<ProtectedRoute />}>
-        <Route path="/Dashboard" element={<Dashboard />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/My-Programs" element={<MyProgramsPage />} />
         <Route path="/my-programs" element={<MyProgramsPage />} />
-        <Route path="/Profile" element={<Profile />} />
         <Route path="/profile" element={<Profile />} />
-        <Route path="/EditProfile" element={<EditProfile />} />
         <Route path="/editprofile" element={<EditProfile />} />
-        <Route path="/Manage-Program" element={<ManageProgramPage />} />
         <Route path="/manage-program" element={<ManageProgramPage />} />
-        <Route path="/SubmitProgram" element={<SubmitProgramPage />} />
         <Route path="/submitprogram" element={<SubmitProgramPage />} />
-        <Route path="/Submit-Program" element={<SubmitProgramPage />} />
         <Route path="/submit-program" element={<SubmitProgramPage />} />
         
         {/* Admin Moderation & User Management Routes */}
         <Route path="/admin/submissions" element={<AdminSubmissions />} />
-        <Route path="/Admin/Submissions" element={<AdminSubmissions />} />
         <Route path="/admin/review" element={<AdminSubmissions />} />
         <Route path="/admin/users" element={<AdminUsers />} />
-        <Route path="/Admin/Users" element={<AdminUsers />} />
       </Route>
 
       {/* 404 Catch-All */}
@@ -145,15 +120,17 @@ function App() {
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
         <Router>
-          <ScrollToTop />
-          <Header />
-          <div className="pt-16 min-h-[calc(100vh-64px)] flex flex-col">
-            <div className="flex-grow">
-              <AuthenticatedApp />
+          <CanonicalPath>
+            <ScrollToTop />
+            <Header />
+            <div className="pt-16 min-h-[calc(100vh-64px)] flex flex-col">
+              <div className="flex-grow">
+                <AuthenticatedApp />
+              </div>
+              <Footer />
             </div>
-            <Footer />
-          </div>
-          <PrototypeDisclaimer />
+            <PrototypeDisclaimer />
+          </CanonicalPath>
         </Router>
         <Toaster />
       </QueryClientProvider>

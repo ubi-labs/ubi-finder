@@ -207,7 +207,7 @@ export default function ProgramDetailsPage() {
     window.scrollTo(0, 0);
     
     if (!programId) {
-      navigate("/Programs");
+      navigate("/programs");
       return;
     }
     
@@ -249,7 +249,7 @@ export default function ProgramDetailsPage() {
         
       if (programError || !programData || programData.internal_status === 'deleted') {
         console.error("Program not found or archived:", programError);
-        navigate("/Programs");
+        navigate("/programs");
         return;
       }
       
@@ -522,7 +522,7 @@ export default function ProgramDetailsPage() {
     if (user) {
       return (
         <Link 
-          to="/My-Report" 
+          to="/my-report"
           className="inline-flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-800 font-semibold hover:underline bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 transition-colors"
         >
           <span>Fill out our form to check match</span> &rarr;
@@ -587,7 +587,7 @@ export default function ProgramDetailsPage() {
         <div className="flex items-center gap-2 text-xs text-gray-500 mb-6">
           <Link to="/" className="hover:text-green-700 transition-colors">Home</Link>
           <span>/</span>
-          <Link to="/Programs" className="hover:text-green-700 transition-colors">Programs</Link>
+          <Link to="/programs" className="hover:text-green-700 transition-colors">Programs</Link>
           <span>/</span>
           <span className="text-gray-800 font-semibold truncate max-w-xs">{program.name}</span>
         </div>
@@ -634,7 +634,7 @@ export default function ProgramDetailsPage() {
                         variant="outline"
                         size="sm"
                         className="border-green-700 text-green-700 hover:bg-green-50 text-xs"
-                        onClick={() => navigate("/Manage-Program", { state: { programId: program.program_id } })}
+                        onClick={() => navigate("/manage-program", { state: { programId: program.program_id } })}
                       >
                         <Pencil className="w-3.5 h-3.5 mr-1" />
                         Manage

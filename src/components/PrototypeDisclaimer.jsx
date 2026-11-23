@@ -55,7 +55,7 @@ export default function PrototypeDisclaimer() {
           <div className="p-2 bg-slate-800/60 rounded-xl border border-slate-700/60 flex items-center justify-between gap-2">
             <span className="text-slate-300 font-medium">Missing a program?</span>
             <Link
-              to="/Submit-Program"
+              to="/submit-program"
               onClick={() => setIsExpanded(false)}
               className="text-emerald-400 hover:text-emerald-300 font-bold hover:underline inline-flex items-center gap-1 text-xs"
             >

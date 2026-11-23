@@ -245,7 +245,7 @@ export default function EditProfile() {
       setLoading(false);
     } catch (error) {
       console.error("Error loading user data:", error);
-      navigate("/My-Report");
+      navigate("/my-report");
     }
   };
 
@@ -321,7 +321,7 @@ export default function EditProfile() {
         variant: "success",
       });
       
-      navigate("/My-Report");
+      navigate("/my-report");
     } catch (error) {
       console.error("Error saving profile:", error);
       toast({
@@ -622,7 +622,7 @@ export default function EditProfile() {
           <Button 
             variant="ghost" 
             className="text-green-700 hover:bg-green-50" 
-            onClick={() => navigate("/My-Report")}
+            onClick={() => navigate("/my-report")}
           >
             <ChevronLeft className="w-5 h-5 mr-1" />
             Back to My Report

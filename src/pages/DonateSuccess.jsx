@@ -53,7 +53,7 @@ export default function DonateSuccess() {
           {receipt && <a className="underline" href={receipt} target="_blank" rel="noopener noreferrer">View Stripe receipt</a>}
         </> : <p role={error ? 'alert' : 'status'}>{cancelled ? 'Checkout was cancelled. Supporter access has not changed.' : failed ? 'This checkout did not complete. You can start a new checkout.' : error || (!sessionId ? 'A valid checkout session is required.' : 'Waiting for Stripe confirmation. Access activates only after a verified payment.')}</p>}
         {!completed && !cancelled && sessionId && <Button variant="outline" onClick={() => setAttempt(attempt + 1)}>Check payment status again</Button>}
-        <Link className="block underline" to="/Programs">Explore programs</Link>
+        <Link className="block underline" to="/programs">Explore programs</Link>
       </section>
     </main>
   );

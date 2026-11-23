@@ -174,12 +174,12 @@ export default function About() {
               </div>
 
               <div className="pt-4 flex flex-col sm:flex-row items-center gap-4">
-                <Link to="/Programs">
+                <Link to="/programs">
                   <Button size="lg" className="bg-white text-green-900 hover:bg-green-50 font-bold px-6 shadow-md">
                     Explore Verified Programs &rarr;
                   </Button>
                 </Link>
-                <Link to="/Services">
+                <Link to="/services">
                   <Button variant="outline" size="lg" className="border-green-300 text-green-100 hover:bg-white/10">
                     Launching a Pilot? Talk to Firebelly
                   </Button>
@@ -291,13 +291,13 @@ export default function About() {
                     Have questions, suggestions, or want to connect with other recipients and researchers? Join our community discussions or submit a missing program.
                   </p>
                   <div className="flex flex-wrap gap-3 pt-2">
-                    <Link to="/Community">
+                    <Link to="/community">
                       <Button className="bg-green-700 hover:bg-green-800 text-white font-semibold text-xs shadow-sm flex items-center gap-1.5">
                         <MessageSquare className="w-3.5 h-3.5" />
                         Community Discussions
                       </Button>
                     </Link>
-                    <Link to="/Submit-Program">
+                    <Link to="/submit-program">
                       <Button variant="outline" className="border-green-700 text-green-800 hover:bg-green-100 text-xs font-semibold">
                         Submit a Program &rarr;
                       </Button>

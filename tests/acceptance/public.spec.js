@@ -4,7 +4,7 @@ test("public home, catalog, and detail pages use local fixtures", async ({ page 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Find Income Support Programs" })).toBeVisible();
 
-  await page.goto("/Programs");
+  await page.goto("/programs");
   await expect(page.getByRole("heading", { name: "Global UBI Programs Directory" })).toBeVisible();
   await expect(page.getByText("Available Programs", { exact: true })).toBeVisible();
   const firstProgram = page.locator("h3.text-xl").first();

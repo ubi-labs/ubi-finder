@@ -77,7 +77,7 @@ export default function MatchingPrograms({ programs, profile, onToggleFavorite, 
           </span>
         </div>
 
-        <Link to="/My-Report">
+        <Link to="/my-report">
           <Button size="sm" className="bg-white text-green-950 hover:bg-green-100 font-bold text-xs shadow-sm flex items-center gap-1">
             <Sparkles className="w-3.5 h-3.5 text-yellow-500" />
             Full Report &rarr;

@@ -51,7 +51,7 @@ export default function Home() {
   const handleFormSubmit = async (data) => {
     setFormData(data);
     if (isAuthenticated && user) {
-      navigate("/My-Report");
+      navigate("/my-report");
     }
   };
 
@@ -83,7 +83,7 @@ export default function Home() {
                 </p>
                 <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4">
                   {isAuthenticated ? (
-                    <Link to="/My-Report" className="w-full sm:w-auto">
+                    <Link to="/my-report" className="w-full sm:w-auto">
                       <Button 
                         size="lg"
                         className="bg-green-700 hover:bg-green-800 w-full sm:w-auto shadow-md cursor-pointer flex items-center justify-center gap-2"
@@ -108,7 +108,7 @@ export default function Home() {
                 
                 <div className="mt-5 text-sm text-green-800/90 flex items-center justify-center md:justify-start gap-2">
                   <span>Launching or managing a UBI program?</span>
-                  <Link to="/Services" className="font-semibold text-green-700 hover:text-green-900 underline flex items-center gap-1">
+                  <Link to="/services" className="font-semibold text-green-700 hover:text-green-900 underline flex items-center gap-1">
                     Explore Builder Services &rarr;
                   </Link>
                 </div>
@@ -157,7 +157,7 @@ export default function Home() {
             <UserForm onSubmit={handleFormSubmit} />
             {!isAuthenticated && (
               <div className="mt-6 text-center">
-                <Link to="/Programs" className="text-sm font-medium text-green-600 hover:text-green-800 hover:underline">
+                <Link to="/programs" className="text-sm font-medium text-green-600 hover:text-green-800 hover:underline">
                   Skip this, go direct to the UBI Programs &rarr;
                 </Link>
               </div>
@@ -176,7 +176,7 @@ export default function Home() {
                   Discover actively funding and ongoing basic income initiatives.
                 </p>
               </div>
-              <Link to="/Programs">
+              <Link to="/programs">
                 <Button variant="outline" className="border-green-600 text-green-700 hover:bg-green-50 cursor-pointer">
                   View All Programs &rarr;
                 </Button>
@@ -276,7 +276,7 @@ export default function Home() {
               <p className="text-green-800/80 mb-4 text-sm">
                 Help others by adding a program to our growing database.
               </p>
-              <Link to={isAuthenticated ? "/Submit-Program" : "/login?view=signup&redirectTo=/Submit-Program"}>
+              <Link to={isAuthenticated ? "/submit-program" : "/login?view=signup&redirectTo=/submit-program"}>
                 <Button variant="outline" className="w-full border-green-600 text-green-700 hover:bg-green-50 cursor-pointer">
                   Add Program
                 </Button>
