@@ -38,11 +38,16 @@ test("eligibility answers persist across a reload", async ({ page }) => {
 });
 
 test("a denied onboarding signup remains a draft rather than a saved profile", async ({ page }) => {
-  await page.route("**/auth/v1/otp", route => route.fulfill({
-    status: 400,
-    contentType: "application/json",
-    body: JSON.stringify({ msg: "CAPTCHA verification failed" }),
-  }));
+  let otpInterceptCount = 0;
+  await page.route(url => url.pathname === "/auth/v1/otp", route => {
+    expect(route.request().method()).toBe("POST");
+    otpInterceptCount += 1;
+    return route.fulfill({
+      status: 400,
+      contentType: "application/json",
+      body: JSON.stringify({ msg: "CAPTCHA verification failed" }),
+    });
+  });
 
   await page.goto("/");
   await page.getByText("Select your country").click();
@@ -58,6 +63,7 @@ test("a denied onboarding signup remains a draft rather than a saved profile", a
   await page.getByRole("button", { name: "Find Available Programs" }).click();
 
   await expect(page.getByText("CAPTCHA verification failed", { exact: true })).toBeVisible();
+  expect(otpInterceptCount).toBe(1);
   await expect(page.getByRole("heading", { name: "Verification Email Sent!" })).toHaveCount(0);
   const storage = await page.evaluate(() => ({
     saved: localStorage.getItem("user_profile_data"),
