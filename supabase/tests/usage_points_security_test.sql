@@ -20,8 +20,8 @@ INSERT INTO auth.users(id,email,email_confirmed_at,raw_user_meta_data) VALUES
   ('30000000-0000-0000-0000-000000000002','usage-other@example.test',now(),'{}');
 
 SET LOCAL ROLE anon;
-SELECT throws_ok($$SELECT points_total FROM public.user_usage_points$$, '42501', 'anon REST-equivalent read denied');
-SELECT throws_ok($$INSERT INTO public.user_usage_points(ip_hash) VALUES('anon_denied')$$, '42501', 'anon REST-equivalent write denied');
+SELECT throws_ok($$SELECT points_total FROM public.user_usage_points$$, '42501', NULL, 'anon REST-equivalent read denied');
+SELECT throws_ok($$INSERT INTO public.user_usage_points(ip_hash) VALUES('anon_denied')$$, '42501', NULL, 'anon REST-equivalent write denied');
 RESET ROLE;
 
 SET LOCAL ROLE authenticated;
@@ -35,15 +35,15 @@ SELECT lives_ok($$INSERT INTO public.user_usage_points(user_id,ip_hash,points_to
 SELECT is((SELECT points_total FROM public.user_usage_points WHERE ip_hash='anon_owner1'), 20, 'owner upsert changes own telemetry');
 SELECT is((SELECT count(*)::integer FROM public.user_usage_points WHERE user_id='30000000-0000-0000-0000-000000000002'), 0, 'cross-user rows are unreadable');
 SELECT lives_ok($$UPDATE public.user_usage_points SET points_total=99 WHERE user_id='30000000-0000-0000-0000-000000000002'$$, 'cross-user update reveals no row');
-SELECT throws_ok($$UPDATE public.user_usage_points SET user_id='30000000-0000-0000-0000-000000000002' WHERE ip_hash='anon_owner1'$$, '42501', 'ownership transfer denied');
-SELECT throws_ok($$INSERT INTO public.user_usage_points(user_id,ip_hash) VALUES('30000000-0000-0000-0000-000000000002','anon_cross')$$, '42501', 'cross-user insert denied');
-SELECT throws_ok($$INSERT INTO public.user_usage_points(user_id,ip_hash,points_total) VALUES('30000000-0000-0000-0000-000000000001','anon_negative',-1)$$, '23514', 'negative points denied');
-SELECT throws_ok($$INSERT INTO public.user_usage_points(user_id,ip_hash,map_views_count) VALUES('30000000-0000-0000-0000-000000000001','anon_negative2',-1)$$, '23514', 'negative counters denied');
-SELECT throws_ok($$INSERT INTO public.user_usage_points(user_id,ip_hash) VALUES('30000000-0000-0000-0000-000000000001','forged')$$, '23514', 'malformed telemetry hash denied');
+SELECT throws_ok($$UPDATE public.user_usage_points SET user_id='30000000-0000-0000-0000-000000000002' WHERE ip_hash='anon_owner1'$$, '42501', NULL, 'ownership transfer denied');
+SELECT throws_ok($$INSERT INTO public.user_usage_points(user_id,ip_hash) VALUES('30000000-0000-0000-0000-000000000002','anon_cross')$$, '42501', NULL, 'cross-user insert denied');
+SELECT throws_ok($$INSERT INTO public.user_usage_points(user_id,ip_hash,points_total) VALUES('30000000-0000-0000-0000-000000000001','anon_negative',-1)$$, '23514', NULL, 'negative points denied');
+SELECT throws_ok($$INSERT INTO public.user_usage_points(user_id,ip_hash,map_views_count) VALUES('30000000-0000-0000-0000-000000000001','anon_negative2',-1)$$, '23514', NULL, 'negative counters denied');
+SELECT throws_ok($$INSERT INTO public.user_usage_points(user_id,ip_hash) VALUES('30000000-0000-0000-0000-000000000001','forged')$$, '23514', NULL, 'malformed telemetry hash denied');
 SELECT lives_ok($$UPDATE public.user_usage_points SET points_total=0 WHERE ip_hash='anon_owner1'$$, 'legitimate zero reset succeeds');
 SELECT is((SELECT points_total FROM public.user_usage_points WHERE ip_hash='anon_owner1'), 0, 'zero reset is retained');
-SELECT throws_ok($$INSERT INTO public.user_usage_points(user_id,ip_hash,has_donated) VALUES('30000000-0000-0000-0000-000000000001','anon_forgedpaid',true)$$, '42501', 'browser cannot forge paid status');
-SELECT throws_ok($$UPDATE public.user_usage_points SET total_donated_usd=999 WHERE ip_hash='anon_owner1'$$, '42501', 'browser cannot forge donated amount');
+SELECT throws_ok($$INSERT INTO public.user_usage_points(user_id,ip_hash,has_donated) VALUES('30000000-0000-0000-0000-000000000001','anon_forgedpaid',true)$$, '42501', NULL, 'browser cannot forge paid status');
+SELECT throws_ok($$UPDATE public.user_usage_points SET total_donated_usd=999 WHERE ip_hash='anon_owner1'$$, '42501', NULL, 'browser cannot forge donated amount');
 
 SELECT * FROM finish();
 ROLLBACK;
