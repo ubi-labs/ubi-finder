@@ -97,6 +97,13 @@ test("My Programs shows authorized non-public programs without requiring a profi
     const pendingCard = page.getByText(pending.name, { exact: true }).locator("xpath=ancestor::*[contains(@class,'rounded-xl')][1]");
     await pendingCard.getByRole("button", { name: "Manage Program" }).click();
     await expect(page).toHaveURL(/\/manage-program$/i);
+    await expect(page.getByPlaceholder("Enter program name")).toHaveValue(pending.name);
+
+    await page.goto("/my-programs");
+    const rejectedCard = page.getByText(rejected.name, { exact: true }).locator("xpath=ancestor::*[contains(@class,'rounded-xl')][1]");
+    await rejectedCard.getByRole("button", { name: "Manage Program" }).click();
+    await expect(page).toHaveURL(/\/manage-program$/i);
+    await expect(page.getByPlaceholder("Enter program name")).toHaveValue(rejected.name);
   } finally {
     await admin.from("program_managers").delete().in("program_id", [pending.program_id, rejected.program_id, unrelated.program_id]);
     await admin.from("programs").delete().in("program_id", [pending.program_id, rejected.program_id, unrelated.program_id]);
