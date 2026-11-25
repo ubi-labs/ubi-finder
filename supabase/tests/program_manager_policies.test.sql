@@ -27,7 +27,7 @@ INSERT INTO public.programs(
 
 INSERT INTO public.program_managers(program_id,user_email,role,created_by_id) VALUES
   (45001,'manager-owner@example.test','owner','45000000-0000-0000-0000-000000000001'),
-  (45001,'private-viewer@example.test','viewer','45000000-0000-0000-0000-000000000001'),
+  (45001,'private-manager@example.test','admin','45000000-0000-0000-0000-000000000001'),
   (45002,'manager-admin@example.test','admin','45000000-0000-0000-0000-000000000005');
 
 SET LOCAL ROLE authenticated;
@@ -48,25 +48,25 @@ SET LOCAL request.jwt.claims = '{"sub":"45000000-0000-0000-0000-000000000002","r
 SELECT is((SELECT count(*)::integer FROM public.program_managers WHERE program_id=45001),2,
   'existing owner can list manager rows for the managed program');
 SELECT lives_ok($$INSERT INTO public.program_managers(program_id,user_email,role,created_by_id)
-  VALUES(45001,'delegated-viewer@example.test','viewer','45000000-0000-0000-0000-000000000002')$$,
-  'existing owner can add a manager row');
+  VALUES(45001,'delegated-admin@example.test','admin','45000000-0000-0000-0000-000000000002')$$,
+  'existing owner can add an admin manager row');
 SELECT is((SELECT count(*)::integer FROM public.program_managers WHERE program_id=45001),3,
-  'owner can read the newly delegated row');
+  'owner can read the newly delegated admin row');
 SELECT throws_ok($$UPDATE public.program_managers SET program_id=45002
   WHERE program_id=45001 AND user_email='manager-owner@example.test'$$,
   '42501',NULL,'cross-program membership transfer is denied');
 SELECT lives_ok($$DELETE FROM public.program_managers
-  WHERE program_id=45001 AND user_email='delegated-viewer@example.test'$$,
-  'existing owner can remove a delegated row');
+  WHERE program_id=45001 AND user_email='delegated-admin@example.test'$$,
+  'existing owner can remove a delegated admin row');
 
 SET LOCAL request.jwt.claims = '{"sub":"45000000-0000-0000-0000-000000000003","role":"authenticated"}';
 SELECT is((SELECT count(*)::integer FROM public.program_managers WHERE program_id=45002),1,
   'existing admin manager can list the managed program');
 SELECT lives_ok($$INSERT INTO public.program_managers(program_id,user_email,role,created_by_id)
-  VALUES(45002,'admin-delegated@example.test','viewer','45000000-0000-0000-0000-000000000003')$$,
-  'existing admin manager can add a manager row');
+  VALUES(45002,'delegated-owner@example.test','owner','45000000-0000-0000-0000-000000000003')$$,
+  'existing admin manager can add an owner manager row');
 SELECT is((SELECT count(*)::integer FROM public.program_managers WHERE program_id=45002),2,
-  'admin manager can read delegated rows');
+  'admin manager can read the delegated owner row');
 
 SET LOCAL request.jwt.claims = '{"sub":"45000000-0000-0000-0000-000000000004","role":"authenticated"}';
 SELECT is((SELECT count(*)::integer FROM public.program_managers),0,
@@ -74,8 +74,8 @@ SELECT is((SELECT count(*)::integer FROM public.program_managers),0,
 SELECT throws_ok($$INSERT INTO public.program_managers(program_id,user_email,role,created_by_id)
   VALUES(45001,'manager-outsider@example.test','owner','45000000-0000-0000-0000-000000000004')$$,
   '42501',NULL,'unrelated users cannot self-appoint by email');
-SELECT is((SELECT count(*)::integer FROM public.program_managers WHERE user_email='private-viewer@example.test'),0,
-  'unrelated users cannot read a private viewer row');
+SELECT is((SELECT count(*)::integer FROM public.program_managers WHERE user_email='private-manager@example.test'),0,
+  'unrelated users cannot read a private manager row');
 
 SELECT * FROM finish();
 ROLLBACK;
