@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
 import { notifyAdminsOfNewSubmission } from "@/lib/adminNotifications";
-import { persistProgramSubmission } from "@/lib/programSubmission";
+import { persistProgramSubmission, ProgramOwnerAssociationError } from "@/lib/programSubmission";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -101,6 +101,8 @@ export default function SubmitProgramPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loginAlertOpen, setLoginAlertOpen] = useState(false);
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
+  const [savedProgramId, setSavedProgramId] = useState(null);
+  const [submissionError, setSubmissionError] = useState("");
 
   // Confirmation gate: User must acknowledge checking the database before editing form
   const [hasSearchedConfirmation, setHasSearchedConfirmation] = useState(false);
@@ -297,6 +299,7 @@ export default function SubmitProgramPage() {
 
     try {
       setSubmitting(true);
+      setSubmissionError("");
       const userData = (await supabase.auth.getUser()).data?.user;
       if (!userData) {
         setLoginAlertOpen(true);
@@ -337,6 +340,7 @@ export default function SubmitProgramPage() {
         client: supabase,
         user: userData,
         userProfileId,
+        savedProgramId,
         program: {
           name: formData.name,
           organization: formData.organization,
@@ -372,13 +376,21 @@ export default function SubmitProgramPage() {
         website: formData.website,
       }).catch(err => console.warn("Admin notification non-blocking error:", err));
 
+      setSavedProgramId(null);
       setSubmissionSuccess(true);
       setTimeout(() => {
         navigate("/programs");
       }, 2000);
     } catch (error) {
       console.error("Error submitting program:", error);
-      alert("There was an issue submitting your program. Please try again.");
+      if (error instanceof ProgramOwnerAssociationError) {
+        setSavedProgramId(error.programId);
+        setSubmissionError(
+          `Program #${error.programId} was saved, but owner access could not be linked. Retry to link access without creating another program.`,
+        );
+      } else {
+        alert("There was an issue submitting your program. Please try again.");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -1019,6 +1031,12 @@ export default function SubmitProgramPage() {
 
               <Separator />
 
+              {submissionError && (
+                <p role="alert" className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                  {submissionError}
+                </p>
+              )}
+
               <div className="flex justify-end gap-4">
                 <Button
                   type="button"
@@ -1036,12 +1054,12 @@ export default function SubmitProgramPage() {
                   {submitting ? (
                     <div className="flex items-center">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                      Submitting...
+                      {savedProgramId ? "Linking owner access..." : "Submitting..."}
                     </div>
                   ) : (
                     <>
                       <Save className="w-4 h-4 mr-2" />
-                      Submit Program
+                      {savedProgramId ? "Retry owner access" : "Submit Program"}
                     </>
                   )}
                 </Button>

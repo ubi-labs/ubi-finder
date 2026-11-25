@@ -35,10 +35,26 @@ test("program submission persists its allocated ID and owner relationship", asyn
   const admin = getLocalAdminClient();
   const acceptanceAccount = await findAcceptanceUser(admin);
   const programName = `Acceptance owned submission ${Date.now()}`;
+  let managerAttempts = 0;
   let programId;
 
   expect(acceptanceAccount).toBeTruthy();
   try {
+    await page.route("**/rest/v1/program_managers*", async route => {
+      if (route.request().method() === "POST" && managerAttempts++ === 0) {
+        await route.fulfill({
+          status: 403,
+          contentType: "application/json",
+          body: JSON.stringify({
+            code: "42501",
+            message: "simulated owner association denial",
+          }),
+        });
+        return;
+      }
+      await route.continue();
+    });
+
     await page.goto("/login?redirectTo=%2Fsubmit-program");
     await page.getByLabel("Email address").fill(acceptanceUser.email);
     await page.getByLabel("Password").fill(acceptanceUser.password);
@@ -57,12 +73,22 @@ test("program submission persists its allocated ID and owner relationship", asyn
     await page.getByLabel("Globally Available / Worldwide (Open to all countries)").check();
     await page.getByRole("button", { name: "Submit Program", exact: true }).click();
 
-    await expect(page.getByRole("heading", { name: "Success!" })).toBeVisible();
-    const { data: createdProgram, error: programError } = await admin.from("programs")
-      .select("program_id, created_by_id").eq("name", programName).single();
+    await expect(page.getByRole("alert")).toContainText("was saved, but owner access could not be linked");
+    const { data: createdPrograms, error: programError } = await admin.from("programs")
+      .select("program_id, created_by_id").eq("name", programName);
     expect(programError).toBeNull();
+    expect(createdPrograms).toHaveLength(1);
+    const [createdProgram] = createdPrograms;
     expect(createdProgram.created_by_id).toBe(acceptanceAccount.id);
     programId = createdProgram.program_id;
+
+    await page.getByRole("button", { name: "Retry owner access", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Success!" })).toBeVisible();
+    expect(managerAttempts).toBe(2);
+    const { data: programsAfterRetry, error: retryProgramError } = await admin.from("programs")
+      .select("program_id").eq("name", programName);
+    expect(retryProgramError).toBeNull();
+    expect(programsAfterRetry).toEqual([{ program_id: programId }]);
 
     const { data: manager, error: managerError } = await admin.from("program_managers")
       .select("program_id, user_email, role, created_by_id")

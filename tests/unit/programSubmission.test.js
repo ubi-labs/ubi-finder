@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { persistProgramSubmission } from "@/lib/programSubmission";
+import { persistProgramSubmission, ProgramOwnerAssociationError } from "@/lib/programSubmission";
 
 function submissionClient({
   programResult = { data: { program_id: 431 }, error: null },
@@ -70,10 +70,31 @@ describe("program submission persistence", () => {
     expect(fixture.managerInsert).not.toHaveBeenCalled();
   });
 
-  it("reports ownership insertion errors instead of claiming success", async () => {
+  it("retains the saved ID when ownership insertion fails", async () => {
     const error = new Error("manager insert denied");
     const fixture = submissionClient({ managerResult: { error } });
-    await expect(persistProgramSubmission({ client: fixture.client, program, user })).rejects.toBe(error);
+    const failure = await persistProgramSubmission({ client: fixture.client, program, user })
+      .catch(caught => caught);
+    expect(failure).toBeInstanceOf(ProgramOwnerAssociationError);
+    expect(failure).toMatchObject({ programId: 431, cause: error });
+  });
+
+  it("retries only the failed owner link for the retained program ID", async () => {
+    const error = new Error("manager insert denied");
+    const fixture = submissionClient();
+    fixture.managerInsert.mockResolvedValueOnce({ error }).mockResolvedValueOnce({ error: null });
+
+    const failure = await persistProgramSubmission({ client: fixture.client, program, user })
+      .catch(caught => caught);
+    await expect(persistProgramSubmission({
+      client: fixture.client,
+      program,
+      user,
+      savedProgramId: failure.programId,
+    })).resolves.toBe(431);
+
+    expect(fixture.programInsert).toHaveBeenCalledTimes(1);
+    expect(fixture.managerInsert).toHaveBeenCalledTimes(2);
   });
 
   it("requires an authenticated submitter", async () => {
