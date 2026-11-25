@@ -1525,16 +1525,12 @@ export default function Programs() {
                               {/* Action Buttons */}
                               <td className="px-4 py-3 text-right">
                                 <div className="flex items-center justify-end gap-1.5">
-                                  {(program.website || program.apply_url) && (
-                                    <button
-                                      type="button"
-                                      onClick={() => window.open(program.apply_url || program.website, '_blank')}
-                                      className="p-1 text-gray-400 hover:text-green-800 transition-colors cursor-pointer"
-                                      title="Open Official Website / Portal"
-                                    >
-                                      <ExternalLink className="w-3.5 h-3.5" />
-                                    </button>
-                                  )}
+                                  <Link
+                                    to={`/program-details?id=${program.program_id}`}
+                                    className="text-[11px] font-semibold text-green-700 hover:text-green-900"
+                                  >
+                                    View application options
+                                  </Link>
                                   <Link to={`/program-details?id=${program.program_id}`}>
                                     <Button
                                       size="sm"

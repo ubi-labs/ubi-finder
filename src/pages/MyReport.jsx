@@ -823,16 +823,14 @@ export default function MyReport() {
                           <span>Apply via UBI Finder</span>
                         </Button>
                       ) : (
-                        (prog.apply_url || prog.website) && (
-                          <Button
-                            size="sm"
-                            onClick={() => window.open(prog.apply_url || prog.website, "_blank")}
-                            className="bg-green-700 hover:bg-green-800 text-white font-bold text-xs shadow-sm flex items-center gap-1.5"
-                          >
-                            <span>Official Portal</span>
-                            <ExternalLink className="w-3.5 h-3.5" />
-                          </Button>
-                        )
+                        <Button
+                          size="sm"
+                          onClick={() => navigate(`/program-details?id=${prog.program_id}`)}
+                          className="bg-green-700 hover:bg-green-800 text-white font-bold text-xs shadow-sm flex items-center gap-1.5"
+                        >
+                          <span>View application options</span>
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </Button>
                       )}
                     </div>
 

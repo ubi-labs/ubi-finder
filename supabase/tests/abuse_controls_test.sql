@@ -1,6 +1,6 @@
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(21);
+SELECT plan(23);
 SELECT ok(NOT has_table_privilege('anon','public.programs','SELECT'),'anonymous table reads revoked');
 SELECT ok(NOT has_function_privilege('anon','public.read_program_catalog(text,uuid,integer,integer,integer)','EXECUTE'),'anonymous cannot invoke service RPC');
 SELECT ok(NOT has_function_privilege('authenticated','public.read_program_catalog(text,uuid,integer,integer,integer)','EXECUTE'),'authenticated cannot bypass gateway quotas');
@@ -14,6 +14,8 @@ SELECT throws_ok($$SELECT public.read_program_catalog('192.0.2.2',NULL,1)$$,'280
 SELECT throws_ok($$SELECT public.read_program_catalog('192.0.2.2',NULL,NULL,0,21)$$,'P0001','Invalid catalog request','page size bounded');
 SELECT ok(jsonb_array_length(public.read_program_catalog('192.0.2.2')->'programs')<=20,'public page bounded');
 SELECT ok(NOT ((public.read_program_catalog('192.0.2.2')->'programs'->0) ? 'submitter_email'),'summary excludes submitter data');
+SELECT ok(NOT ((public.read_program_catalog('192.0.2.2')->'programs'->0) ? 'website'),'summary excludes website URLs');
+SELECT ok(NOT ((public.read_program_catalog('192.0.2.2')->'programs'->0) ? 'apply_url'),'summary excludes application URLs');
 INSERT INTO abuse_private.buckets VALUES ('expired-test',now()-interval '2 days',now()-interval '1 second',1);
 SELECT abuse_private.cleanup();
 SELECT is((SELECT count(*)::integer FROM abuse_private.buckets WHERE key='expired-test'),0,'expired counters cleaned');
