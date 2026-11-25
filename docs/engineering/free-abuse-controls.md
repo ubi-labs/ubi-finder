@@ -2,7 +2,7 @@
 
 This implementation is a deployment candidate for `dev` staging first. Hosted activation requires the migration, the program-catalog function, the frontend, and Auth settings below. No Redis, premium bot service, paid log drain, or extended log retention is introduced.
 
-Do not merge the feature branch to `dev` until the staging Turnstile site key and native Supabase CAPTCHA secret are installed and the Before User Created hook is ready for coordinated validation. The current Preview (`dev`) environment has only the Supabase URL and anon key, so an automatic staging deployment would otherwise ship a blocked authentication UI. Local and CI bypasses are restricted to the isolated local runtime and are not a hosted activation substitute.
+Do not merge the feature branch to `dev` until the native Supabase CAPTCHA secret is installed, the Before User Created hook is ready, and the real gateway-header overwrite is ready for coordinated validation. The staging Turnstile site key is now present in Vercel Preview variables for `dev`, but that frontend-only setting does not activate or prove native CAPTCHA verification. Local and CI bypasses are restricted to the isolated local runtime and are not a hosted activation substitute.
 
 ## Account creation
 
@@ -39,7 +39,7 @@ The private tables require operator database access; no public analytics endpoin
 
 ## Rollout and rollback
 
-1. Create the free Turnstile widget for the staging and production hostnames. Install the staging public key in Vercel Preview variables for `dev`, the staging secret in native Supabase CAPTCHA settings, and prepare the Before User Created hook. Keep the feature-branch automatic Vercel Git preview disabled; the repository deployment workflow owns the reviewed staging release.
+1. Confirm the staging Turnstile public key already installed in Vercel Preview variables for `dev`, then install the corresponding secret in native Supabase CAPTCHA settings and prepare the Before User Created hook. Keep the feature-branch automatic Vercel Git preview disabled; the repository deployment workflow owns the reviewed staging release. Production configuration remains a separate activation gate.
 2. Pass clean reset, error-level database lint, the complete SQL suite, concurrent-quota integration, combined Edge tests, and local browser acceptance at the reconciled commit. These checks do not establish hosted activation.
 3. Only after the staging configuration is ready, merge the reviewed feature PR to `dev`. The `dev` workflow applies migration `00043`, deploys `program-catalog`, and publishes the frontend against the separate staging backend. Do not add a hosted development bypass or preserve unrestricted raw reads as a compatibility fallback.
 4. On staging, verify public summaries, guest detail denial, verified details, management/submission, name preservation, lowercase routing, quotas, and a forged gateway-header request. Confirm the real gateway overwrites `cf-connecting-ip`, native CAPTCHA rejects direct tokenless Auth signup, and legitimate signup/reset/sign-in flows work before activating the signup hook.

@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
 import { notifyAdminsOfNewSubmission } from "@/lib/adminNotifications";
+import { persistProgramSubmission } from "@/lib/programSubmission";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -332,44 +333,36 @@ export default function SubmitProgramPage() {
         ? null
         : formData.gender_requirement;
 
-      // Insert program
-      await supabase.from('programs').insert([{
-        name: formData.name,
-        organization: formData.organization,
-        description: formData.description,
-        gender_requirement: finalGender,
-        min_age: formData.min_age !== "" && formData.min_age !== null && !isNaN(Number(formData.min_age)) ? parseInt(formData.min_age, 10) : null,
-        max_age: formData.max_age !== "" && formData.max_age !== null && !isNaN(Number(formData.max_age)) ? parseInt(formData.max_age, 10) : null,
-        monthly_amount_usd: sanitizedMonthlyAmount,
-        currency: formData.currency || "USD",
-        available_regions: finalRegions,
-        required_states: isGlobal ? [] : requiredStates,
-        payment_method: finalPaymentMethod,
-        amount_description: formData.amount_description,
-        max_household_income_usd: formData.max_household_income_usd,
-        eligibility: formData.eligibility,
-        status: finalStatus,
-        website: formData.website,
-        sources: allSources,
-
-        submitter_email: userData.email,
-        verified: false
-      }]);
-
-      // Create program manager record if possible
-      if (userProfileId) {
-        await supabase.from('program_managers').insert([{
-
-          user_email: userData.email,
-          user_profile_id: userProfileId,
-          role: "owner",
-          added_date: new Date().toISOString()
-        }]);
-      }
+      const programId = await persistProgramSubmission({
+        client: supabase,
+        user: userData,
+        userProfileId,
+        program: {
+          name: formData.name,
+          organization: formData.organization,
+          description: formData.description,
+          gender_requirement: finalGender,
+          min_age: formData.min_age !== "" && formData.min_age !== null && !isNaN(Number(formData.min_age)) ? parseInt(formData.min_age, 10) : null,
+          max_age: formData.max_age !== "" && formData.max_age !== null && !isNaN(Number(formData.max_age)) ? parseInt(formData.max_age, 10) : null,
+          monthly_amount_usd: sanitizedMonthlyAmount,
+          currency: formData.currency || "USD",
+          available_regions: finalRegions,
+          required_states: isGlobal ? [] : requiredStates,
+          payment_method: finalPaymentMethod,
+          amount_description: formData.amount_description,
+          max_household_income_usd: formData.max_household_income_usd,
+          eligibility: formData.eligibility,
+          status: finalStatus,
+          website: formData.website,
+          sources: allSources,
+          submitter_email: userData.email,
+          verified: false,
+        },
+      });
 
       // Notify platform admins & owners of the new submission
       notifyAdminsOfNewSubmission({
-
+        program_id: programId,
         name: formData.name,
         organization: formData.organization,
         submitter_email: userData.email,

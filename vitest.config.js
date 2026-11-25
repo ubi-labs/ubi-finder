@@ -32,6 +32,7 @@ export default defineConfig({
         "src/lib/stripe.js",
         "src/lib/captcha.js",
         "src/lib/programCatalog.js",
+        "src/lib/programSubmission.js",
         "supabase/functions/_shared/abuse-policy.js",
         "supabase/functions/_shared/payment-policy.js",
         "supabase/functions/_shared/supporter-constants.js",
