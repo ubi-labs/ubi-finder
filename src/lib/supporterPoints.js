@@ -10,42 +10,58 @@ import {
 export { BASE_THRESHOLDS, HALVED_THRESHOLDS, POINT_WEIGHTS };
 
 const STORAGE_KEY = 'ubi_supporter_points_v1';
+const MAX_DATABASE_INTEGER = 2147483647;
+const CLIENT_IDENTIFIER_PATTERN = /^(?:ip_[a-z0-9]{1,64}|anon_[a-z0-9]{1,64})$/;
 
 let cachedIpHash = null;
 
-// Get or generate client IP identifier
+const defaultSupporterState = () => ({
+  points: 0,
+  programViews: 0,
+  mapViews: 0,
+  searchQueries: 0,
+  encouragementShown: false,
+  hasDonated: false,
+  totalDonatedUsd: 0,
+  isIpHalved: false,
+  hasUsedProfileReset: false
+});
+
+function sanitizeCounter(value) {
+  return Number.isSafeInteger(value) && value >= 0 && value <= MAX_DATABASE_INTEGER ? value : 0;
+}
+
+function sanitizeLocalSupporterState(value) {
+  const candidate = value || {};
+  const defaults = defaultSupporterState();
+  return {
+    ...defaults,
+    ...candidate,
+    points: sanitizeCounter(candidate.points),
+    programViews: sanitizeCounter(candidate.programViews),
+    mapViews: sanitizeCounter(candidate.mapViews),
+    searchQueries: sanitizeCounter(candidate.searchQueries),
+  };
+}
+
+function incrementCounter(value, amount) {
+  return Math.min(MAX_DATABASE_INTEGER, sanitizeCounter(value) + amount);
+}
+
+// Get or generate an opaque browser-local identifier. It is telemetry only,
+// never proof of an IP address, account ownership, payment, or quota authority.
 export async function getClientIpHash() {
   if (cachedIpHash) return cachedIpHash;
-  
-  try {
-    const stored = localStorage.getItem('ubi_client_ip_hash');
-    if (stored) {
-      cachedIpHash = stored;
-      return stored;
-    }
 
-    const res = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(2000) });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.ip) {
-        let hash = 0;
-        const str = data.ip + '_ubi_salt';
-        for (let i = 0; i < str.length; i++) {
-          hash = ((hash << 5) - hash) + str.charCodeAt(i);
-          hash |= 0;
-        }
-        cachedIpHash = 'ip_' + Math.abs(hash).toString(36);
-        localStorage.setItem('ubi_client_ip_hash', cachedIpHash);
-        return cachedIpHash;
-      }
-    }
-  } catch (err) {
-    // Fallback
+  const stored = localStorage.getItem('ubi_client_ip_hash');
+  if (stored && CLIENT_IDENTIFIER_PATTERN.test(stored)) {
+    cachedIpHash = stored;
+    return stored;
   }
 
   let fallback = localStorage.getItem('ubi_client_anon_id');
-  if (!fallback) {
-    fallback = 'anon_' + Math.random().toString(36).substring(2, 12);
+  if (!fallback || !CLIENT_IDENTIFIER_PATTERN.test(fallback)) {
+    fallback = 'anon_' + (Math.random().toString(36).substring(2, 12) || '0');
     localStorage.setItem('ubi_client_anon_id', fallback);
   }
   cachedIpHash = fallback;
@@ -57,28 +73,18 @@ export function getLocalSupporterState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      return JSON.parse(raw);
+      return sanitizeLocalSupporterState(JSON.parse(raw));
     }
   } catch (e) {
     // Ignore parse error
   }
-  return {
-    points: 0,
-    programViews: 0,
-    mapViews: 0,
-    searchQueries: 0,
-    encouragementShown: false,
-    hasDonated: false,
-    totalDonatedUsd: 0,
-    isIpHalved: false,
-    hasUsedProfileReset: false
-  };
+  return defaultSupporterState();
 }
 
 // Save local state
 export function saveLocalSupporterState(state) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitizeLocalSupporterState(state)));
     window.dispatchEvent(new Event('ubi_supporter_state_changed'));
   } catch (e) {
     // Ignore
@@ -135,23 +141,9 @@ export function getSupporterCategory(user = null) {
   }
 }
 
-// Check if IP is shared with another high-usage account
-export async function checkIsIpHalved(ipHash, userId) {
-  try {
-    if (!supabase) return false;
-    const { data } = await supabase
-      .from('user_usage_points')
-      .select('points_total, user_id')
-      .eq('ip_hash', ipHash)
-      .gte('points_total', BASE_THRESHOLDS.HARD);
-
-    if (data && data.length > 0) {
-      const otherUserGated = data.some(d => d.user_id !== userId);
-      return otherUserGated;
-    }
-  } catch (e) {
-    // Fallback
-  }
+// Retained for callers that imported the old helper. Browser-provided identifiers
+// no longer authorize cross-account lookup or shared-IP threshold changes.
+export async function checkIsIpHalved() {
   return false;
 }
 
@@ -160,17 +152,7 @@ export async function getSupporterStatus(user = null) {
   try { await loadDonationStatus(user); } catch { /* Verification errors grant no payment access. */ }
   const verified = getVerifiedSupporter(user);
   const local = { ...getLocalSupporterState(), hasDonated: verified.has_donated, totalDonatedUsd: verified.total_cents / 100 };
-  const ipHash = await getClientIpHash();
-  const userId = user?.id || null;
-
-  let isIpHalved = local.isIpHalved;
-  if (!isIpHalved && ipHash) {
-    isIpHalved = await checkIsIpHalved(ipHash, userId);
-    if (isIpHalved !== local.isIpHalved) {
-      local.isIpHalved = isIpHalved;
-      saveLocalSupporterState(local);
-    }
-  }
+  const isIpHalved = local.isIpHalved;
 
   const softThreshold = isIpHalved ? HALVED_THRESHOLDS.SOFT : BASE_THRESHOLDS.SOFT;
   const hardThreshold = isIpHalved ? HALVED_THRESHOLDS.HARD : BASE_THRESHOLDS.HARD;
@@ -201,19 +183,20 @@ export async function recordUsageAction(actionType, user = null) {
   if (pointsToAdd === 0) return await getSupporterStatus(user);
 
   const local = getLocalSupporterState();
-  local.points += pointsToAdd;
+  local.points = incrementCounter(local.points, pointsToAdd);
 
-  if (actionType === 'PROGRAM_DETAILS_VIEW') local.programViews += 1;
-  else if (actionType === 'MAP_VIEW') local.mapViews += 1;
-  else if (actionType === 'SEARCH_QUERY') local.searchQueries += 1;
+  if (actionType === 'PROGRAM_DETAILS_VIEW') local.programViews = incrementCounter(local.programViews, 1);
+  else if (actionType === 'MAP_VIEW') local.mapViews = incrementCounter(local.mapViews, 1);
+  else if (actionType === 'SEARCH_QUERY') local.searchQueries = incrementCounter(local.searchQueries, 1);
 
   saveLocalSupporterState(local);
 
   const ipHash = await getClientIpHash();
-  const userId = user?.id || null;
+  const userId = user?.id;
 
-  // Sync with Supabase asynchronously
-  if (supabase) {
+  // Guests remain browser-local. Signed-in counters are telemetry synchronized
+  // to the account's own RLS-protected row after local integer sanitization.
+  if (supabase && userId) {
     (async () => {
       try {
         await supabase.from('user_usage_points').upsert({
@@ -243,10 +226,10 @@ export async function markEncouragementDismissed(user = null) {
   saveLocalSupporterState(local);
 
   const ipHash = await getClientIpHash();
-  if (supabase) {
+  if (supabase && user?.id) {
     try {
       await supabase.from('user_usage_points').upsert({
-        user_id: user?.id || null,
+        user_id: user.id,
         ip_hash: ipHash,
         encouragement_shown: true,
         updated_at: new Date().toISOString()
@@ -277,9 +260,9 @@ export async function resetPointsWithProfileCompletion(user = null) {
   saveLocalSupporterState(local);
 
   const ipHash = await getClientIpHash();
-  const userId = user?.id || null;
+  const userId = user?.id;
 
-  if (supabase) {
+  if (supabase && userId) {
     try {
       await supabase.from('user_usage_points').upsert({
         user_id: userId,

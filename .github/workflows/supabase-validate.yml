@@ -69,6 +69,9 @@ jobs:
       - name: Test atomic donation fulfillment and privileges
         run: node tests/integration/stripe-donations.mjs
 
+      - name: Test usage-points ownership and constraints
+        run: node tests/integration/usage-points-security.mjs
+
       - name: Test abuse controls and concurrency
         run: node tests/integration/abuse-controls.mjs
 

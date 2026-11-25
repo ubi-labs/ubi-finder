@@ -5,10 +5,8 @@ const user = { id: 'account-one' };
 let points;
 let storage;
 let localStorage;
-let fetch;
 let dispatchEvent;
 let backend;
-let query;
 let upsert;
 let getVerifiedSupporter;
 let loadDonationStatus;
@@ -51,20 +49,13 @@ beforeEach(async () => {
     getItem: vi.fn((key) => storage.get(key) ?? null),
     setItem: vi.fn((key, value) => storage.set(key, value)),
   };
-  fetch = vi.fn().mockRejectedValue(new Error('Unexpected network request'));
   dispatchEvent = vi.fn();
   upsert = vi.fn().mockResolvedValue({ error: null });
-  query = {
-    select: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    gte: vi.fn().mockResolvedValue({ data: [] }),
-  };
-  backend = { from: vi.fn(() => ({ ...query, upsert })) };
+  backend = { from: vi.fn(() => ({ upsert })) };
   getVerifiedSupporter = vi.fn(() => ({ has_donated: false, total_cents: 0 }));
   loadDonationStatus = vi.fn().mockResolvedValue(undefined);
   vi.stubGlobal('localStorage', localStorage);
   vi.stubGlobal('window', { dispatchEvent });
-  vi.stubGlobal('fetch', fetch);
   vi.useFakeTimers();
   vi.setSystemTime(new Date('2026-11-12T12:00:00.000Z'));
   points = await importPoints();
@@ -82,49 +73,28 @@ describe('client identifier', () => {
     expect(await points.getClientIpHash()).toBe('ip_fixture');
     localStorage.getItem.mockImplementation(() => { throw new Error('Storage blocked'); });
     expect(await points.getClientIpHash()).toBe('ip_fixture');
-    expect(fetch).not.toHaveBeenCalled();
     expect(localStorage.getItem).toHaveBeenCalledTimes(1);
   });
 
-  it('derives and persists a stable hash from the mocked IP response', async () => {
-    storage.delete('ubi_client_ip_hash');
-    fetch.mockResolvedValue({ ok: true, json: async () => ({ ip: '192.0.2.1' }) });
-    const hash = await points.getClientIpHash();
-    expect(hash).toMatch(/^ip_[a-z0-9]+$/);
-    expect(storage.get('ubi_client_ip_hash')).toBe(hash);
-    expect(fetch).toHaveBeenCalledWith('https://api.ipify.org?format=json', {
-      signal: expect.any(AbortSignal),
-    });
-    points = await importPoints();
-    expect(await points.getClientIpHash()).toBe(hash);
-    expect(fetch).toHaveBeenCalledTimes(1);
-  });
-
-  it.each([
-    ['non-OK response', { ok: false }],
-    ['missing IP', { ok: true, json: async () => ({}) }],
-  ])('reuses the anonymous identifier after a %s', async (_name, response) => {
+  it('reuses the anonymous identifier without making an external IP request', async () => {
     storage.delete('ubi_client_ip_hash');
     storage.set('ubi_client_anon_id', 'anon_saved');
-    fetch.mockResolvedValue(response);
     expect(await points.getClientIpHash()).toBe('anon_saved');
   });
 
-  it('creates an anonymous fallback when the mocked network rejects', async () => {
+  it('creates and persists a browser-local anonymous identifier', async () => {
     storage.delete('ubi_client_ip_hash');
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     expect(await points.getClientIpHash()).toBe('anon_i');
     expect(storage.get('ubi_client_anon_id')).toBe('anon_i');
   });
 
-  it('falls back after malformed response JSON', async () => {
-    storage.delete('ubi_client_ip_hash');
-    storage.set('ubi_client_anon_id', 'anon_saved');
-    fetch.mockResolvedValue({
-      ok: true,
-      json: async () => { throw new Error('Malformed response'); },
-    });
-    expect(await points.getClientIpHash()).toBe('anon_saved');
+  it('replaces malformed persisted identifiers with a bounded local identifier', async () => {
+    storage.set('ubi_client_ip_hash', 'forged');
+    storage.set('ubi_client_anon_id', 'anon_INVALID');
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    expect(await points.getClientIpHash()).toBe('anon_0');
+    expect(storage.get('ubi_client_anon_id')).toBe('anon_0');
   });
 
   it('rejects when fallback storage is also unavailable', async () => {
@@ -144,7 +114,7 @@ describe('local state persistence', () => {
     expect(points.getLocalSupporterState()).toEqual(defaultState());
   });
 
-  it.each(['{malformed', 'undefined'])('ignores invalid saved JSON %s', (raw) => {
+  it.each(['{malformed', 'undefined', 'null'])('ignores invalid saved JSON %s', (raw) => {
     storage.set(stateKey, raw);
     expect(points.getLocalSupporterState()).toEqual(defaultState());
   });
@@ -160,6 +130,18 @@ describe('local state persistence', () => {
     expect(points.getLocalSupporterState()).toEqual(state);
     expect(dispatchEvent).toHaveBeenCalledTimes(1);
     expect(dispatchEvent.mock.calls[0][0].type).toBe('ubi_supporter_state_changed');
+  });
+
+  it.each([
+    ['negative', -1],
+    ['fractional', 1.5],
+    ['non-numeric', '4'],
+    ['overflow', 2147483648],
+  ])('sanitizes %s browser counters before storage or REST synchronization', (_label, value) => {
+    const state = { ...defaultState(), points: value, programViews: value, mapViews: value, searchQueries: value };
+    points.saveLocalSupporterState(state);
+    expect(storedState()).toMatchObject({ points: 0, programViews: 0, mapViews: 0, searchQueries: 0 });
+    expect(points.getLocalSupporterState()).toMatchObject({ points: 0, programViews: 0, mapViews: 0, searchQueries: 0 });
   });
 
   it('ignores failed writes', () => {
@@ -214,34 +196,10 @@ describe('verified supporter categories', () => {
   });
 });
 
-describe('shared IP lookup', () => {
-  it.each([
-    [[], false],
-    [[{ user_id: user.id }], false],
-    [[{ user_id: 'other-account' }], true],
-    [null, false],
-  ])('handles qualifying rows %j', async (data, expected) => {
-    query.gte.mockResolvedValue({ data });
-    expect(await points.checkIsIpHalved('ip_fixture', user.id)).toBe(expected);
-    expect(backend.from).toHaveBeenCalledWith('user_usage_points');
-    expect(query.select).toHaveBeenCalledWith('points_total, user_id');
-    expect(query.eq).toHaveBeenCalledWith('ip_hash', 'ip_fixture');
-    expect(query.gte).toHaveBeenCalledWith('points_total', 70);
-  });
-
-  it('recognizes another account for an anonymous visitor', async () => {
-    query.gte.mockResolvedValue({ data: [{ user_id: 'other-account' }] });
-    expect(await points.checkIsIpHalved('ip_fixture', null)).toBe(true);
-  });
-
-  it('returns false when a query rejects', async () => {
-    query.gte.mockRejectedValue(new Error('Backend unavailable'));
+describe('removed shared IP lookup', () => {
+  it('retains the exported helper as a local-only false result', async () => {
     expect(await points.checkIsIpHalved('ip_fixture', user.id)).toBe(false);
-  });
-
-  it('returns false without a backend', async () => {
-    points = await importPoints(null);
-    expect(await points.checkIsIpHalved('ip_fixture', user.id)).toBe(false);
+    expect(backend.from).not.toHaveBeenCalled();
   });
 });
 
@@ -268,25 +226,11 @@ describe('usage thresholds', () => {
     });
   });
 
-  it('persists newly detected shared-IP status', async () => {
-    storeState({ points: 35 });
-    query.gte.mockResolvedValue({ data: [{ user_id: 'other-account' }] });
-    const status = await points.getSupporterStatus(user);
-    expect(status).toMatchObject({ isIpHalved: true, isGated: true });
-    expect(storedState().isIpHalved).toBe(true);
-    expect(dispatchEvent).toHaveBeenCalledTimes(1);
-  });
-
-  it('does not rewrite state when the lookup leaves standard thresholds', async () => {
+  it('does not rewrite state or query shared identifiers while evaluating thresholds', async () => {
     storeState();
     await points.getSupporterStatus(user);
     expect(localStorage.setItem).not.toHaveBeenCalled();
-  });
-
-  it('does not look up a persisted halved status', async () => {
-    storeState({ isIpHalved: true });
-    await points.getSupporterStatus(user);
-    expect(query.gte).not.toHaveBeenCalled();
+    expect(backend.from).not.toHaveBeenCalled();
   });
 
   it('suppresses encouragement after dismissal', async () => {
@@ -350,7 +294,7 @@ describe('usage recording', () => {
     storeState();
     points.POINT_WEIGHTS.EXTRA_ACTION = 5;
     try {
-      expect(await points.recordUsageAction('EXTRA_ACTION')).toMatchObject({
+      expect(await points.recordUsageAction('EXTRA_ACTION', user)).toMatchObject({
         points: 5, programViews: 0, mapViews: 0, searchQueries: 0,
       });
       expect(upsert.mock.calls[0][0]).toMatchObject({
@@ -368,12 +312,37 @@ describe('usage recording', () => {
     expect(upsert).not.toHaveBeenCalled();
   });
 
-  it('records an anonymous action and tolerates an async upsert rejection', async () => {
+  it('keeps anonymous usage local without attempting REST writes', async () => {
+    storeState();
+    expect(await points.recordUsageAction('MAP_VIEW')).toMatchObject({ points: 20, mapViews: 1 });
+    expect(upsert).not.toHaveBeenCalled();
+    expect(storedState().points).toBe(20);
+  });
+
+  it('keeps signed-in usage locally when its asynchronous REST write rejects', async () => {
     storeState();
     upsert.mockRejectedValue(new Error('Backend unavailable'));
-    expect(await points.recordUsageAction('MAP_VIEW')).toMatchObject({ points: 20, mapViews: 1 });
-    expect(upsert.mock.calls[0][0].user_id).toBeNull();
-    expect(storedState().points).toBe(20);
+    expect(await points.recordUsageAction('MAP_VIEW', user)).toMatchObject({ points: 20, mapViews: 1 });
+    await vi.runAllTimersAsync();
+    expect(upsert).toHaveBeenCalledOnce();
+  });
+
+  it('saturates counters at the PostgreSQL integer boundary before REST synchronization', async () => {
+    storeState({ points: 2147483647, mapViews: 2147483647 });
+    await points.recordUsageAction('MAP_VIEW', user);
+    expect(storedState()).toMatchObject({ points: 2147483647, mapViews: 2147483647 });
+    expect(upsert.mock.calls[0][0]).toMatchObject({ points_total: 2147483647, map_views_count: 2147483647 });
+  });
+
+  it('sanitizes malformed persisted counters before signed-in synchronization', async () => {
+    storeState({ points: -7, programViews: 1.5, mapViews: 2147483648, searchQueries: '4' });
+    await points.recordUsageAction('SEARCH_QUERY', user);
+    expect(upsert.mock.calls[0][0]).toMatchObject({
+      points_total: 2,
+      program_views_count: 0,
+      map_views_count: 0,
+      search_queries_count: 1,
+    });
   });
 
   it('records usage locally without a backend', async () => {
@@ -385,26 +354,33 @@ describe('usage recording', () => {
 });
 
 describe('encouragement dismissal', () => {
-  it.each([undefined, user])('persists dismissal and its identity for %j', async (account) => {
+  it('persists signed-in dismissal to its own account', async () => {
     storeState({ points: 45 });
-    await points.markEncouragementDismissed(account);
+    await points.markEncouragementDismissed(user);
     expect(storedState().encouragementShown).toBe(true);
     expect(upsert).toHaveBeenCalledWith({
-      user_id: account?.id || null,
+      user_id: user.id,
       ip_hash: 'ip_fixture',
       encouragement_shown: true,
       updated_at: '2026-11-12T12:00:00.000Z',
     }, { onConflict: 'user_id,ip_hash' });
     points = await importPoints();
-    expect((await points.getSupporterStatus(account)).shouldEncourage).toBe(false);
-    await points.markEncouragementDismissed(account);
+    expect((await points.getSupporterStatus(user)).shouldEncourage).toBe(false);
+    await points.markEncouragementDismissed(user);
     expect(storedState().encouragementShown).toBe(true);
   });
 
-  it('keeps the local dismissal when the backend rejects', async () => {
+  it('keeps anonymous dismissal local', async () => {
+    storeState();
+    await points.markEncouragementDismissed();
+    expect(storedState().encouragementShown).toBe(true);
+    expect(upsert).not.toHaveBeenCalled();
+  });
+
+  it('keeps signed-in dismissal when the backend rejects', async () => {
     storeState();
     upsert.mockRejectedValue(new Error('Backend unavailable'));
-    await points.markEncouragementDismissed();
+    await points.markEncouragementDismissed(user);
     expect(storedState().encouragementShown).toBe(true);
   });
 
@@ -453,13 +429,21 @@ describe('profile completion reset', () => {
     expect(await points.resetPointsWithProfileCompletion()).toMatchObject({
       points: 0, isIpHalved: false, softThreshold: 40, hardThreshold: 70,
     });
-    expect(upsert.mock.calls[0][0].user_id).toBeNull();
+    expect(upsert).not.toHaveBeenCalled();
   });
 
-  it('keeps the reset when an anonymous backend write rejects', async () => {
+  it('keeps anonymous profile reset local', async () => {
+    storeState({ points: 70 });
+    expect(await points.resetPointsWithProfileCompletion()).toMatchObject({
+      points: 0, isIpHalved: true, hasUsedProfileReset: true,
+    });
+    expect(upsert).not.toHaveBeenCalled();
+  });
+
+  it('keeps signed-in profile reset when the backend rejects', async () => {
     storeState({ points: 70 });
     upsert.mockRejectedValue(new Error('Backend unavailable'));
-    expect(await points.resetPointsWithProfileCompletion()).toMatchObject({
+    expect(await points.resetPointsWithProfileCompletion(user)).toMatchObject({
       points: 0, isIpHalved: true, hasUsedProfileReset: true,
     });
   });
