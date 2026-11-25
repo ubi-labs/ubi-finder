@@ -34,6 +34,7 @@ export default defineConfig({
         "src/lib/programCatalog.js",
         "supabase/functions/_shared/abuse-policy.js",
         "supabase/functions/_shared/payment-policy.js",
+        "supabase/functions/_shared/supporter-constants.js",
         "supabase/functions/_shared/donor-details.js",
       ],
       exclude: ["tests/**"],

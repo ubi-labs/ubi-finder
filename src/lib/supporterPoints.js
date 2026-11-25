@@ -1,26 +1,15 @@
 import { supabase } from '@/lib/supabaseClient';
 import { getVerifiedSupporter, loadDonationStatus } from '@/lib/donationStatus';
+import { supporterTier } from '../../supabase/functions/_shared/payment-policy.js';
+import {
+  BASE_THRESHOLDS,
+  HALVED_THRESHOLDS,
+  POINT_WEIGHTS,
+} from '../../supabase/functions/_shared/supporter-constants.js';
+
+export { BASE_THRESHOLDS, HALVED_THRESHOLDS, POINT_WEIGHTS };
 
 const STORAGE_KEY = 'ubi_supporter_points_v1';
-
-// Point weights
-export const POINT_WEIGHTS = {
-  PROGRAM_DETAILS_VIEW: 10,
-  MAP_VIEW: 20,
-  SEARCH_QUERY: 2
-};
-
-// Standard Thresholds
-export const BASE_THRESHOLDS = {
-  SOFT: 40, // 4th program view (40 pts) or 2nd map view (40 pts)
-  HARD: 70  // 7th program view (70 pts) or 4th map view (80 pts)
-};
-
-// Halved Thresholds for shared IP or profile-reset accounts
-export const HALVED_THRESHOLDS = {
-  SOFT: 20, // 2nd program view (20 pts) or 1st map view (20 pts)
-  HARD: 35  // 4th program view (40 pts) or 2nd map view (40 pts)
-};
 
 let cachedIpHash = null;
 
@@ -110,22 +99,26 @@ export function getSupporterCategory(user = null) {
   }
 
   const amount = Number(local.totalDonatedUsd || 0);
+  const verifiedCents = Number.isFinite(Number(verified.total_cents))
+    ? Number(verified.total_cents)
+    : 1;
+  const category = supporterTier(verifiedCents);
 
-  if (amount >= 500) {
+  if (category === 'Patron') {
     return {
       category: 'Patron',
       badgeClass: 'text-amber-900 bg-amber-100 border-amber-300 font-bold',
       isSupporter: true,
       amount
     };
-  } else if (amount >= 50) {
+  } else if (category === 'Champion') {
     return {
       category: 'Champion',
       badgeClass: 'text-emerald-900 bg-emerald-100 border-emerald-300 font-bold',
       isSupporter: true,
       amount
     };
-  } else if (amount >= 5) {
+  } else if (category === 'Supporter') {
     return {
       category: 'Supporter',
       badgeClass: 'text-teal-900 bg-teal-100 border-teal-300 font-bold',

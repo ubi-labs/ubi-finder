@@ -1,5 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { amountToCents, paymentOrigins, supporterTier, validatePaidSession, validateReturnOrigin } from '../../supabase/functions/_shared/payment-policy.js';
+import {
+  BASE_THRESHOLDS,
+  DONATION_TIERS_CENTS,
+  DONATION_TIERS_USD,
+  HALVED_THRESHOLDS,
+  POINT_WEIGHTS,
+} from '../../supabase/functions/_shared/supporter-constants.js';
 const { invoke, getSession } = vi.hoisted(() => ({ invoke: vi.fn(), getSession: vi.fn() }));
 vi.mock('@/lib/supabaseClient', () => ({ supabase: { functions: { invoke }, auth: { getSession } } }));
 import { getDonationGuestToken, getVerifiedSupporter, loadDonationStatus } from '@/lib/donationStatus';
@@ -15,9 +22,16 @@ beforeEach(() => {
   vi.stubGlobal('window', { location: { origin: 'https://ubifinder.org', assign: vi.fn() }, dispatchEvent: vi.fn() });
 });
 describe('payment policy', () => {
+  it('shares documented point and donation policy units', () => {
+    expect(POINT_WEIGHTS).toEqual({ PROGRAM_DETAILS_VIEW: 10, MAP_VIEW: 20, SEARCH_QUERY: 2 });
+    expect(BASE_THRESHOLDS).toEqual({ SOFT: 40, HARD: 70 });
+    expect(HALVED_THRESHOLDS).toEqual({ SOFT: 20, HARD: 35 });
+    expect(DONATION_TIERS_USD).toEqual({ PATRON: 500, CHAMPION: 50, SUPPORTER: 5, MEMBER_PLUS: 1 });
+    expect(DONATION_TIERS_CENTS).toEqual({ PATRON: 50000, CHAMPION: 5000, SUPPORTER: 500, MEMBER_PLUS: 100 });
+  });
   it.each([['1', 100], ['5.25', 525], [10000, 1000000]])('accepts exact cent amounts %s', (value, cents) => expect(amountToCents(value)).toBe(cents));
   it.each([0, -1, 10000.01, NaN, Infinity, '5.001', '1e2', '', true, null, {}, '5usd'])('rejects unsafe amount %s', (value) => expect(() => amountToCents(value)).toThrow());
-  it.each([[0, 'Member'], [100, 'Member+'], [499, 'Member+'], [500, 'Supporter'], [4999, 'Supporter'], [5000, 'Champion'], [49999, 'Champion'], [50000, 'Patron']])('tier boundary %i', (cents, tier) => expect(supporterTier(cents)).toBe(tier));
+  it.each([[0, 'Member'], [1, 'Member+'], [99, 'Member+'], [100, 'Member+'], [499, 'Member+'], [500, 'Supporter'], [501, 'Supporter'], [4999, 'Supporter'], [5000, 'Champion'], [5001, 'Champion'], [49999, 'Champion'], [50000, 'Patron'], [50001, 'Patron']])('tier boundary %i', (cents, tier) => expect(supporterTier(cents)).toBe(tier));
   it('allows only exact return origins', () => {
     const allowed = ['https://ubifinder.org'];
     expect(validateReturnOrigin('https://ubifinder.org', allowed)).toBe(allowed[0]);

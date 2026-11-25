@@ -134,6 +134,12 @@ describe('client identifier', () => {
 });
 
 describe('local state persistence', () => {
+  it('retains the public shared policy exports', () => {
+    expect(points.POINT_WEIGHTS).toEqual({ PROGRAM_DETAILS_VIEW: 10, MAP_VIEW: 20, SEARCH_QUERY: 2 });
+    expect(points.BASE_THRESHOLDS).toEqual({ SOFT: 40, HARD: 70 });
+    expect(points.HALVED_THRESHOLDS).toEqual({ SOFT: 20, HARD: 35 });
+  });
+
   it('provides the complete initial state when no state is saved', () => {
     expect(points.getLocalSupporterState()).toEqual(defaultState());
   });
@@ -241,6 +247,7 @@ describe('shared IP lookup', () => {
 
 describe('usage thresholds', () => {
   it.each([
+    [false, 0, false, false],
     [false, 39, false, false],
     [false, 40, true, false],
     [false, 69, true, false],
