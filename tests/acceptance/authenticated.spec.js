@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { acceptanceUser } from "./support/local-supabase.js";
+import { acceptanceUser, findAcceptanceUser, getLocalAdminClient } from "./support/local-supabase.js";
 
 test("password authentication opens protected dashboard and report paths", async ({ page }) => {
   await page.goto("/dashboard");
@@ -15,4 +15,203 @@ test("password authentication opens protected dashboard and report paths", async
   await page.getByRole("link", { name: /View Personalized Report/ }).click();
   await expect(page).toHaveURL(/\/my-report$/i);
   await expect(page.getByRole("heading", { name: "Personalized UBI Income Portfolio" })).toBeVisible();
+});
+
+test('verified account opens controlled program detail', async ({ page }) => {
+  await page.goto('/login?redirectTo=%2FPrograms');
+  await page.getByLabel('Email address').fill(acceptanceUser.email);
+  await page.getByLabel('Password').fill(acceptanceUser.password);
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page).toHaveURL(/\/Programs$/i);
+  const first = page.locator('h3.text-xl').first();
+  await expect(first).toBeVisible();
+  const name = (await first.textContent()).trim();
+  await first.click();
+  await expect(page.getByText(name,{exact:true}).first()).toBeVisible();
+  await expect(page.getByText('Program not found.',{exact:true})).toHaveCount(0);
+});
+
+async function allocateProgramId(admin) {
+  const { data, error } = await admin.rpc("next_program_number");
+  if (error) throw error;
+  return data;
+}
+
+async function insertAcceptanceProgram(admin, overrides = {}) {
+  const program = {
+    program_id: await allocateProgramId(admin),
+    name: `Acceptance program ${Date.now()}-${Math.random()}`,
+    organization: "Acceptance Organization",
+    description: "A synthetic local-only program used to verify protected program flows.",
+    monthly_amount_usd: 25,
+    currency: "USD",
+    available_regions: ["Global"],
+    payment_method: "standard",
+    amount_description: "$25 monthly",
+    status: "active_open",
+    internal_status: "active",
+    verified: true,
+    involvement_level: "external_self_apply",
+    ...overrides,
+  };
+  const { error } = await admin.from("programs").insert(program);
+  if (error) throw error;
+  return program;
+}
+
+async function expectControlledPortalDestination(page, portalUrl) {
+  const portalButton = page.getByRole("button", { name: /Official Portal/ }).first();
+  await expect(portalButton).toBeVisible();
+  await page.evaluate(() => {
+    window.__acceptanceOpenedPortal = null;
+    window.open = (url) => { window.__acceptanceOpenedPortal = String(url); };
+  });
+  await portalButton.click();
+  await expect.poll(() => page.evaluate(() => window.__acceptanceOpenedPortal)).toBe(portalUrl);
+}
+
+test("My Programs shows authorized non-public programs without requiring a profile link", async ({ page }) => {
+  const admin = getLocalAdminClient();
+  const acceptanceAccount = await findAcceptanceUser(admin);
+  const pending = await insertAcceptanceProgram(admin, { internal_status: "pending_review" });
+  const rejected = await insertAcceptanceProgram(admin, { internal_status: "rejected" });
+  const unrelated = await insertAcceptanceProgram(admin, { internal_status: "pending_review" });
+
+  try {
+    const { error } = await admin.from("program_managers").insert([
+      { program_id: pending.program_id, user_email: acceptanceUser.email, role: "owner", user_profile_id: null, created_by_id: acceptanceAccount.id },
+      { program_id: rejected.program_id, user_email: acceptanceUser.email, role: "admin", user_profile_id: null, created_by_id: acceptanceAccount.id },
+      { program_id: unrelated.program_id, user_email: "unrelated-manager@example.test", role: "owner" },
+    ]);
+    if (error) throw error;
+
+    await page.goto("/login?redirectTo=%2Fmy-programs");
+    await page.getByLabel("Email address").fill(acceptanceUser.email);
+    await page.getByLabel("Password").fill(acceptanceUser.password);
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await expect(page).toHaveURL(/\/my-programs$/i);
+    await expect(page.getByText(pending.name, { exact: true })).toBeVisible();
+    await expect(page.getByText(rejected.name, { exact: true })).toBeVisible();
+    await expect(page.getByText(unrelated.name, { exact: true })).toHaveCount(0);
+
+    const pendingCard = page.getByText(pending.name, { exact: true }).locator("xpath=ancestor::*[contains(@class,'rounded-xl')][1]");
+    await pendingCard.getByRole("button", { name: "Manage Program" }).click();
+    await expect(page).toHaveURL(/\/manage-program$/i);
+    await expect(page.getByPlaceholder("Enter program name")).toHaveValue(pending.name);
+
+    await page.goto("/my-programs");
+    const rejectedCard = page.getByText(rejected.name, { exact: true }).locator("xpath=ancestor::*[contains(@class,'rounded-xl')][1]");
+    await rejectedCard.getByRole("button", { name: "Manage Program" }).click();
+    await expect(page).toHaveURL(/\/manage-program$/i);
+    await expect(page.getByPlaceholder("Enter program name")).toHaveValue(rejected.name);
+  } finally {
+    await admin.from("program_managers").delete().in("program_id", [pending.program_id, rejected.program_id, unrelated.program_id]);
+    await admin.from("programs").delete().in("program_id", [pending.program_id, rejected.program_id, unrelated.program_id]);
+  }
+});
+
+test("report and table application actions use controlled details before exposing a portal", async ({ page }) => {
+  const admin = getLocalAdminClient();
+  const portalUrl = "https://example.test/acceptance-application";
+  const program = await insertAcceptanceProgram(admin, { website: portalUrl, apply_url: portalUrl });
+
+  try {
+    await page.goto("/login?redirectTo=%2Fmy-report");
+    await page.getByLabel("Email address").fill(acceptanceUser.email);
+    await page.getByLabel("Password").fill(acceptanceUser.password);
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    const reportCard = page.getByText(program.name, { exact: true }).locator("xpath=ancestor::*[contains(@class,'rounded-xl')][1]");
+    await reportCard.getByRole("button", { name: "View application options" }).click();
+    await expect(page).toHaveURL(new RegExp(`/program-details\\?id=${program.program_id}$`));
+    await expectControlledPortalDestination(page, portalUrl);
+
+    await page.goto("/Programs");
+    await page.getByRole("button", { name: "Table View" }).click();
+    const row = page.getByRole("row").filter({ hasText: program.name });
+    await row.getByRole("link", { name: "View application options" }).click();
+    await expect(page).toHaveURL(new RegExp(`/program-details\\?id=${program.program_id}$`));
+    await expectControlledPortalDestination(page, portalUrl);
+  } finally {
+    await admin.from("programs").delete().eq("program_id", program.program_id);
+  }
+});
+
+test("program submission persists its allocated ID and owner relationship", async ({ page }) => {
+  const admin = getLocalAdminClient();
+  const acceptanceAccount = await findAcceptanceUser(admin);
+  const programName = `Acceptance owned submission ${Date.now()}`;
+  let managerAttempts = 0;
+  let programId;
+
+  expect(acceptanceAccount).toBeTruthy();
+  try {
+    await page.route("**/rest/v1/program_managers*", async route => {
+      if (route.request().method() === "POST" && managerAttempts++ === 0) {
+        await route.fulfill({
+          status: 403,
+          contentType: "application/json",
+          body: JSON.stringify({
+            code: "42501",
+            message: "simulated owner association denial",
+          }),
+        });
+        return;
+      }
+      await route.continue();
+    });
+
+    await page.goto("/login?redirectTo=%2Fsubmit-program");
+    await page.getByLabel("Email address").fill(acceptanceUser.email);
+    await page.getByLabel("Password").fill(acceptanceUser.password);
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await expect(page).toHaveURL(/\/submit-program$/i);
+
+    await page.getByText("I have searched through the database and didn't find my program").click();
+    await page.getByRole("button", { name: /Continue to Submission Form/ }).click();
+    await page.getByPlaceholder("Enter program name").fill(programName);
+    await page.getByPlaceholder("Organization or municipal entity running the program").fill("Acceptance Organization");
+    await page.getByPlaceholder("https://...").fill("https://example.test/acceptance-program");
+    await page.getByPlaceholder("Detailed description of the program, objectives, and target population")
+      .fill("A local acceptance fixture that verifies program ownership persistence.");
+    await page.getByPlaceholder("e.g., $500 monthly for 12 months, or 10 G$ daily tokens").fill("$25 monthly");
+    await page.getByPlaceholder("e.g. 500").fill("25");
+    await page.getByLabel("Globally Available / Worldwide (Open to all countries)").check();
+    await page.getByRole("button", { name: "Submit Program", exact: true }).click();
+
+    await expect(page.getByRole("alert")).toContainText("was saved, but owner access could not be linked");
+    const { data: createdPrograms, error: programError } = await admin.from("programs")
+      .select("program_id, created_by_id").eq("name", programName);
+    expect(programError).toBeNull();
+    expect(createdPrograms).toHaveLength(1);
+    const [createdProgram] = createdPrograms;
+    expect(createdProgram.created_by_id).toBe(acceptanceAccount.id);
+    programId = createdProgram.program_id;
+
+    await page.getByRole("button", { name: "Retry owner access", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Success!" })).toBeVisible();
+    expect(managerAttempts).toBe(2);
+    const { data: programsAfterRetry, error: retryProgramError } = await admin.from("programs")
+      .select("program_id").eq("name", programName);
+    expect(retryProgramError).toBeNull();
+    expect(programsAfterRetry).toEqual([{ program_id: programId }]);
+
+    const { data: manager, error: managerError } = await admin.from("program_managers")
+      .select("program_id, user_email, role, created_by_id")
+      .eq("program_id", programId).eq("user_email", acceptanceUser.email).single();
+    expect(managerError).toBeNull();
+    expect(manager).toMatchObject({
+      program_id: programId,
+      user_email: acceptanceUser.email,
+      role: "owner",
+      created_by_id: acceptanceAccount.id,
+    });
+  } finally {
+    if (programId) {
+      await admin.from("program_managers").delete().eq("program_id", programId);
+      await admin.from("admin_notifications").delete().eq("program_id", programId);
+      await admin.from("programs").delete().eq("program_id", programId);
+    } else {
+      await admin.from("programs").delete().eq("name", programName);
+    }
+  }
 });

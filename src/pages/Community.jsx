@@ -1,3 +1,4 @@
+import { programSummaryResult } from '@/lib/programCatalog';
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/lib/AuthContext";
@@ -62,7 +63,7 @@ export default function CommunityPage() {
       const [dRes, aRes, pRes] = await Promise.all([
         supabase.from('community_discussions').select('*').order('created_at', { ascending: false }),
         supabase.from('community_announcements').select('*').order('is_pinned', { ascending: false }).order('created_at', { ascending: false }),
-        supabase.from('programs').select('program_id, name')
+        programSummaryResult()
       ]);
 
       if (!dRes.error && dRes.data) setDiscussions(dRes.data);

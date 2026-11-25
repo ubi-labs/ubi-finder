@@ -4,12 +4,21 @@ import { handler as checkout } from '../create-stripe-checkout/index.ts';
 import { handler as cryptoDonation } from '../submit-crypto-donation/index.ts';
 import { handler as status } from '../donation-status/index.ts';
 import { paymentConfig } from '../_shared/payments.ts';
+import { DONATION_TIERS_CENTS, DONATION_TIERS_USD } from '../_shared/supporter-constants.js';
+import { supporterTier } from '../_shared/payment-policy.js';
 
 const session = { id: 'cs_test_fixture', currency: 'usd', amount_total: 500, livemode: false,
   payment_status: 'paid', metadata: { checkout_id: 'checkout-1' },
   payment_intent: { id: 'pi_fixture', latest_charge: { receipt_url: 'https://pay.stripe.com/receipts/fixture' } } };
 const row = { id: 'checkout-1', stripe_session_id: session.id, amount_cents: 500, livemode: false, donor_key: 'test:guest:fixture', status: 'pending' };
 const config = { STRIPE_SECRET_KEY: 'sk_test_fixture', STRIPE_WEBHOOK_SECRET: 'whsec_fixture', SUPABASE_URL: 'http://127.0.0.1:60321', SUPABASE_SERVICE_ROLE_KEY: 'service-fixture', SUPABASE_ANON_KEY: 'anon-fixture', STRIPE_ALLOWED_ORIGINS: 'http://127.0.0.1:4173', STRIPE_MODE: 'test' };
+Deno.test('shared supporter tiers retain USD values and exact cent boundaries', () => {
+  assert.deepEqual(DONATION_TIERS_USD, { PATRON: 500, CHAMPION: 50, SUPPORTER: 5, MEMBER_PLUS: 1 });
+  assert.deepEqual(DONATION_TIERS_CENTS, { PATRON: 50000, CHAMPION: 5000, SUPPORTER: 500, MEMBER_PLUS: 100 });
+  for (const [cents, tier] of [[0, 'Member'], [1, 'Member+'], [499, 'Member+'], [500, 'Supporter'], [4999, 'Supporter'], [5000, 'Champion'], [49999, 'Champion'], [50000, 'Patron']] as const) {
+    assert.equal(supporterTier(cents), tier);
+  }
+});
 async function configured(test: () => Promise<void>) {
   const old = Object.fromEntries(Object.keys(config).map((k) => [k, Deno.env.get(k)]));
   for (const [key, value] of Object.entries(config)) Deno.env.set(key, value);

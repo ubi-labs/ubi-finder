@@ -1,3 +1,5 @@
+import TurnstileChallenge from '@/components/TurnstileChallenge';
+import { captchaOptions, localCaptchaDevelopment } from '@/lib/captcha';
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { canonicalizePageUrl } from '@/lib/routePaths';
@@ -52,6 +54,8 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState('');
+  const [captchaAttempt, setCaptchaAttempt] = useState(0);
   const [message, setMessage] = useState(null);
 
   const requestedRedirect = searchParams.get('redirectTo') || searchParams.get('returnTo');
@@ -100,7 +104,7 @@ export default function Login() {
 
   // Determine button text & disabled state
   let buttonText = "Continue";
-  let isButtonDisabled = !isValidEmail || loading;
+  let isButtonDisabled = !isValidEmail || loading || (!localCaptchaDevelopment && !captchaToken);
 
   if (view === 'sign_up') {
     if (isPasswordEmpty) {
@@ -126,12 +130,14 @@ export default function Login() {
     const signinTarget = redirectParam || '/programs';
 
     try {
+      const verification = captchaOptions(captchaToken, localCaptchaDevelopment);
       if (view === 'sign_up') {
         if (isPasswordEmpty) {
           // Passwordless Signup via OTP / Magic Link
           const { error } = await supabase.auth.signInWithOtp({ 
             email: email.trim(),
             options: {
+              ...verification,
               emailRedirectTo: `${window.location.origin}${signupTarget.startsWith('/') ? signupTarget : `/${signupTarget}`}`,
               data: {
                 full_name: displayName.trim() || undefined,
@@ -157,6 +163,7 @@ export default function Login() {
             email: email.trim(), 
             password,
             options: {
+              ...verification,
               emailRedirectTo: `${window.location.origin}${signupTarget.startsWith('/') ? signupTarget : `/${signupTarget}`}`,
               data: {
                 full_name: displayName.trim() || undefined,
@@ -178,6 +185,7 @@ export default function Login() {
         }
       } else if (view === 'forgot_password') {
         const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+          ...verification,
           redirectTo: `${window.location.origin}/profile`
         });
         if (error) throw error;
@@ -187,13 +195,14 @@ export default function Login() {
           const { error } = await supabase.auth.signInWithOtp({ 
             email: email.trim(),
             options: {
+              ...verification,
               emailRedirectTo: `${window.location.origin}${signinTarget.startsWith('/') ? signinTarget : `/${signinTarget}`}`
             }
           });
           if (error) throw error;
           setMessage({ type: 'success', text: 'Magic link sent to your email. Click it to sign in instantly.' });
         } else {
-          const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+          const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password, options: verification });
           if (error) throw error;
           // AuthContext handles redirect upon auth change
         }
@@ -201,6 +210,8 @@ export default function Login() {
     } catch (error) {
       setMessage({ type: 'error', text: error.message });
     } finally {
+      setCaptchaToken("");
+      setCaptchaAttempt(n => n + 1);
       setLoading(false);
     }
   };
@@ -321,6 +332,7 @@ export default function Login() {
                 </div>
               )}
 
+              <TurnstileChallenge onToken={setCaptchaToken} attempt={captchaAttempt} />
               <Button
                 type="submit"
                 disabled={isButtonDisabled}

@@ -31,12 +31,16 @@ test("an intentional profile name survives stale drafts, sign-in and token refre
     await page.getByLabel("Password").fill(acceptanceUser.password);
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
     await expect(page).not.toHaveURL(/\/login/);
+    await expect(page.getByRole("heading", { name: "Welcome back, Original signup name" })).toBeVisible();
     await page.evaluate((draft) => {
       localStorage.setItem("user_profile_id", draft.id);
       localStorage.setItem("pendingProfile", JSON.stringify(draft));
     }, profile);
     await page.goto("/");
-    await page.getByRole("button", { name: /Continue to Step 2/ }).click();
+    await expect(page.getByText("Germany", { exact: true }).first()).toBeVisible();
+    const continueToStep2 = page.getByRole("button", { name: /Continue to Step 2/ });
+    await expect(continueToStep2).toBeEnabled();
+    await continueToStep2.click();
     await page.getByRole("button", { name: /Continue to Step 3/ }).click();
     await page.getByLabel("Full Name", { exact: false }).fill(chosenName);
     await page.getByRole("button", { name: "Save & View Personalized Report", exact: true }).click();

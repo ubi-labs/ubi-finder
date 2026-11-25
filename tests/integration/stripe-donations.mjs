@@ -12,8 +12,12 @@ const sessions = [];
 const cryptoIds = [];
 let testUser;
 try {
-  const catalog = await checked(anon.from('programs').select('program_id').limit(1));
-  assert.equal(catalog.length, 1, 'anonymous users can read the public catalog');
+  const rawCatalog = await anon.from('programs').select('program_id').limit(1);
+  assert.equal(rawCatalog.error?.code, '42501', 'anonymous raw catalog reads stay denied');
+  const catalog = await checked(admin.rpc('read_program_catalog', { p_ip: '192.0.2.250' }));
+  assert.ok(Array.isArray(catalog.programs), 'controlled catalog returns summary rows');
+  assert.ok(catalog.programs.length > 0 && catalog.programs.length <= 20, 'controlled catalog page is bounded');
+  assert.equal(Object.hasOwn(catalog.programs[0], 'submitter_email'), false, 'controlled summaries exclude submitter data');
   const id = await reserve(500);
   const session = `cs_test_${randomUUID().replaceAll('-', '')}`;
   sessions.push(session);

@@ -1,7 +1,9 @@
+import { DONATION_TIERS_CENTS } from './supporter-constants.js';
+
 export function amountToCents(amount) {
   if (!['string', 'number'].includes(typeof amount) || !/^\d+(\.\d{1,2})?$/.test(String(amount))) throw new Error('Enter an amount with at most two decimal places.');
   const cents = Math.round(Number(amount) * 100);
-  if (!Number.isSafeInteger(cents) || cents < 100 || cents > 1000000) throw new Error('Choose an amount between $1 and $10,000 USD.');
+  if (!Number.isSafeInteger(cents) || cents < DONATION_TIERS_CENTS.MEMBER_PLUS || cents > 1000000) throw new Error('Choose an amount between $1 and $10,000 USD.');
   return cents;
 }
 export function validateReturnOrigin(value, allowedOrigins) {
@@ -10,9 +12,9 @@ export function validateReturnOrigin(value, allowedOrigins) {
   return url.origin;
 }
 export function supporterTier(totalCents) {
-  if (totalCents >= 50000) return 'Patron';
-  if (totalCents >= 5000) return 'Champion';
-  if (totalCents >= 500) return 'Supporter';
+  if (totalCents >= DONATION_TIERS_CENTS.PATRON) return 'Patron';
+  if (totalCents >= DONATION_TIERS_CENTS.CHAMPION) return 'Champion';
+  if (totalCents >= DONATION_TIERS_CENTS.SUPPORTER) return 'Supporter';
   return totalCents > 0 ? 'Member+' : 'Member';
 }
 export function validatePaidSession(session, checkout, livemode) {

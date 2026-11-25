@@ -1,10 +1,5 @@
-
-
-
-
-
-
 import { supabase } from "@/lib/supabaseClient";
+import { loadManagedPrograms } from "@/lib/managedPrograms";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -39,51 +34,12 @@ export default function MyProgramsPage() {
       }
       setUser(userData);
 
-      // Get user's profile ID
-      const profiles = (await supabase.from('user_profiles').select('*').match({ created_by: userData.email })).data;
-      if (!profiles.length) {
-        setLoading(false);
-        return;
-      }
-      const userProfileId = profiles[0].id;
-
-      // Get programs where user is a manager
-      const managedPrograms = (await supabase.from('program_managers').select('*').match({ 
-        user_email: userData.email,
-        user_profile_id: userProfileId
-      })).data;
-
-      if (!managedPrograms.length) {
-        setPrograms([]);
-        setLoading(false);
-        return;
-      }
-
-      // Filter for only owner/admin roles and get unique program IDs
-      const programIds = [...new Set(
-        managedPrograms
-          .filter(m => m.role === "owner" || m.role === "admin")
-          .map(m => m.program_id)
-      )];
-
-      if (!programIds.length) {
-        setPrograms([]);
-        setLoading(false);
-        return;
-      }
-
-      // Get full program details
-      const allPrograms = (await supabase.from('programs').select('*')).data;
-      const accessiblePrograms = allPrograms.filter(p => 
-        programIds.includes(p.program_id)
-      );
-
-      setPrograms(accessiblePrograms);
-      setLoading(false);
+      setPrograms(await loadManagedPrograms(supabase, userData.email));
     } catch (error) {
       console.error("Error loading programs:", error);
-      setLoading(false);
       navigate("/programs");
+    } finally {
+      setLoading(false);
     }
   };
 

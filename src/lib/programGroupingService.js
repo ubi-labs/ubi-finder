@@ -1,3 +1,4 @@
+import { programSummaries } from './programCatalog';
 /**
  * Program Grouping & Related Programs Service
  * Handles querying and formatting related or sibling programs for a given program.
@@ -65,73 +66,19 @@ export function filterAndDeduplicateRelatedPrograms(currentProgramId, relatedLis
  */
 export async function getRelatedPrograms(supabase, programId, currentProgramData = null) {
   if (!supabase || !programId) return [];
-
-  const pid = parseInt(String(programId), 10);
-  if (isNaN(pid)) return [];
-
+  const pid = Number(programId);
+  if (!Number.isSafeInteger(pid)) return [];
   try {
-    const rawList = [];
-
-    // 1. Query groups this program belongs to via program_group_members
-    const { data: memberRows, error: memberErr } = await supabase
-      .from('program_group_members')
-      .select('group_id, relationship_type, program_groups(id, name, slug, description)')
-      .eq('program_id', pid);
-
-    if (!memberErr && memberRows && memberRows.length > 0) {
-      const groupIds = memberRows.map(r => r.group_id).filter(Boolean);
-
-      if (groupIds.length > 0) {
-        // Find all other programs in these groups
-        const { data: siblingRows, error: siblingErr } = await supabase
-          .from('program_group_members')
-          .select('program_id, group_id, relationship_type, programs(*), program_groups(id, name, slug)')
-          .in('group_id', groupIds)
-          .neq('program_id', pid);
-
-        if (!siblingErr && siblingRows) {
-          rawList.push(...siblingRows);
-        }
-      }
+    const programs = await programSummaries();
+    const { data: memberships } = await supabase.from('program_group_members')
+      .select('group_id').eq('program_id', pid);
+    const ids = (memberships || []).map(m => m.group_id);
+    const { data: siblings } = ids.length ? await supabase.from('program_group_members')
+      .select('program_id, relationship_type, program_groups(name, slug)').in('group_id', ids) : { data: [] };
+    const related = (siblings || []).map(s => ({ ...s, programs: programs.find(p => p.program_id === s.program_id) })).filter(s => s.programs);
+    for (const p of programs) {
+      if (p.program_id === currentProgramData?.parent_program_id || p.parent_program_id === pid) related.push({ programs: p, relationship_type: p.parent_program_id === pid ? 'child_program' : 'parent_program' });
     }
-
-    // 2. Query direct parent program if parent_program_id is set
-    const parentId = currentProgramData?.parent_program_id;
-    if (parentId && parentId !== pid) {
-      const { data: parentData, error: parentErr } = await supabase
-        .from('programs')
-        .select('*')
-        .eq('program_id', parseInt(String(parentId), 10))
-        .single();
-
-      if (!parentErr && parentData) {
-        rawList.push({
-          programs: parentData,
-          relationship_type: 'parent_program',
-          group_name: 'Preceding / Parent Program'
-        });
-      }
-    }
-
-    // 3. Query direct children programs where parent_program_id is this program
-    const { data: childPrograms, error: childErr } = await supabase
-      .from('programs')
-      .select('*')
-      .eq('parent_program_id', pid);
-
-    if (!childErr && childPrograms && childPrograms.length > 0) {
-      for (const cp of childPrograms) {
-        rawList.push({
-          programs: cp,
-          relationship_type: 'child_program',
-          group_name: 'Successor / Sub-Program'
-        });
-      }
-    }
-
-    return filterAndDeduplicateRelatedPrograms(pid, rawList);
-  } catch (err) {
-    console.error('Error fetching related programs:', err);
-    return [];
-  }
+    return filterAndDeduplicateRelatedPrograms(pid, related);
+  } catch { return []; }
 }

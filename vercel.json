@@ -12,6 +12,7 @@
     "deploymentEnabled": {
       "main": false,
       "dev": false,
+      "codex/40-free-abuse-controls": false,
       "codex/staging-production-pipeline": false,
       "codex/lowercase-routes": false,
       "codex/sprint-1-staging": false

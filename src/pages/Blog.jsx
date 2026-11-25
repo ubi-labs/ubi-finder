@@ -1,3 +1,4 @@
+import { programSummaryResult } from '@/lib/programCatalog';
 
 
 
@@ -39,7 +40,7 @@ export default function Blog() {
     try {
       const [postsRes, programsRes] = await Promise.all([
         supabase.from('blog_posts').select('*').order('posted_date', { ascending: false }),
-        supabase.from('programs').select('*')
+        programSummaryResult()
       ]);
       
       const allPosts = postsRes.data || [];
