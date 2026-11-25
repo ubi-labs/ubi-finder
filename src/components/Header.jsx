@@ -113,7 +113,7 @@ export default function Header() {
     const isPrograms = location.pathname.toLowerCase() === '/programs';
     if (isPrograms) return;
 
-    const isHome = location.pathname === '/' || location.pathname === '/Home';
+    const isHome = location.pathname === '/' || location.pathname === '/home';
     
     if (isHome) {
       const formEl = document.getElementById('user-form');
@@ -131,28 +131,28 @@ export default function Header() {
 
   const navLinks = [
     ...(user 
-      ? [{ name: "Dashboard", path: "/Dashboard" }] 
+      ? [{ name: "Dashboard", path: "/dashboard" }]
       : [{ name: "Home", path: "/" }]
     ),
-    { name: "UBI Programs", path: "/Programs" },
-    ...(user ? [{ name: "My Report", path: "/My-Report" }] : []),
-    { name: "Community", path: "/Community" },
-    { name: "Blog", path: "/Blog" },
-    { name: "For Builders", path: "/Services" },
-    { name: "About", path: "/About" }
+    { name: "UBI Programs", path: "/programs" },
+    ...(user ? [{ name: "My Report", path: "/my-report" }] : []),
+    { name: "Community", path: "/community" },
+    { name: "Blog", path: "/blog" },
+    { name: "For Builders", path: "/services" },
+    { name: "About", path: "/about" }
   ];
 
   const renderDesktopNav = () => (
     <nav className="hidden md:flex items-center space-x-1 lg:space-x-1.5">
       {navLinks.map((link) => {
         const isActive = link.path === '/' 
-          ? (location.pathname === '/' || location.pathname === '/Home')
+          ? (location.pathname === '/' || location.pathname === '/home')
           : location.pathname.toLowerCase() === link.path.toLowerCase();
         const activeClass = isActive 
           ? 'bg-green-100/90 text-green-900 font-bold border border-green-200/80 shadow-xs' 
           : 'text-gray-600 hover:text-green-800 hover:bg-gray-100/80 font-medium border border-transparent';
 
-        if (link.path === '/Programs' && !user) {
+        if (link.path === '/programs' && !user) {
           return (
             <a 
               key={link.name} 
@@ -256,7 +256,7 @@ export default function Header() {
 
               <DropdownMenuGroup className="p-1">
                 <DropdownMenuItem 
-                  onClick={() => navigate("/My-Report")}
+                  onClick={() => navigate("/my-report")}
                   className="cursor-pointer text-xs font-medium flex items-center gap-2 p-2 hover:bg-green-50 text-green-950 font-bold"
                 >
                   <Sparkles className="w-4 h-4 text-green-700" />
@@ -264,7 +264,7 @@ export default function Header() {
                 </DropdownMenuItem>
 
                 <DropdownMenuItem 
-                  onClick={() => navigate("/Dashboard")}
+                  onClick={() => navigate("/dashboard")}
                   className="cursor-pointer text-xs font-medium flex items-center gap-2 p-2 hover:bg-green-50"
                 >
                   <LayoutDashboard className="w-4 h-4 text-green-700" />
@@ -272,7 +272,7 @@ export default function Header() {
                 </DropdownMenuItem>
 
                 <DropdownMenuItem 
-                  onClick={() => navigate("/My-Programs")}
+                  onClick={() => navigate("/my-programs")}
                   className="cursor-pointer text-xs font-medium flex items-center gap-2 p-2 hover:bg-green-50"
                 >
                   <Briefcase className="w-4 h-4 text-green-700" />
@@ -280,7 +280,7 @@ export default function Header() {
                 </DropdownMenuItem>
 
                 <DropdownMenuItem 
-                  onClick={() => navigate("/Profile")}
+                  onClick={() => navigate("/profile")}
                   className="cursor-pointer text-xs font-medium flex items-center gap-2 p-2 hover:bg-green-50"
                 >
                   <Settings className="w-4 h-4 text-green-700" />
@@ -322,13 +322,13 @@ export default function Header() {
       <div className="flex flex-col p-4 space-y-2 text-sm">
         {navLinks.map((link) => {
           const isActive = link.path === '/' 
-            ? (location.pathname === '/' || location.pathname === '/Home')
+            ? (location.pathname === '/' || location.pathname === '/home')
             : location.pathname.toLowerCase() === link.path.toLowerCase();
           const activeClass = isActive 
             ? 'bg-green-100/90 text-green-900 font-bold border border-green-200/80' 
             : 'text-gray-800 hover:text-green-800 hover:bg-gray-50 border border-transparent';
 
-          if (link.path === '/Programs' && !user) {
+          if (link.path === '/programs' && !user) {
             return (
               <a 
                 key={link.name} 
@@ -360,19 +360,19 @@ export default function Header() {
                 <span>{supporterInfo.category}</span>
               </span>
             </div>
-            <Link to="/My-Report" className="py-2 border-b border-gray-50 flex items-center gap-2 text-green-950 font-bold">
+            <Link to="/my-report" className="py-2 border-b border-gray-50 flex items-center gap-2 text-green-950 font-bold">
               <Sparkles className="w-4 h-4 text-green-700" />
               My Custom Report
             </Link>
-            <Link to="/Dashboard" className="py-2 border-b border-gray-50 flex items-center gap-2 text-gray-800 font-medium">
+            <Link to="/dashboard" className="py-2 border-b border-gray-50 flex items-center gap-2 text-gray-800 font-medium">
               <LayoutDashboard className="w-4 h-4 text-green-700" />
               My Dashboard
             </Link>
-            <Link to="/My-Programs" className="py-2 border-b border-gray-50 flex items-center gap-2 text-gray-800 font-medium">
+            <Link to="/my-programs" className="py-2 border-b border-gray-50 flex items-center gap-2 text-gray-800 font-medium">
               <Briefcase className="w-4 h-4 text-green-700" />
               Managed Programs
             </Link>
-            <Link to="/Profile" className="py-2 border-b border-gray-50 flex items-center gap-2 text-gray-800 font-medium">
+            <Link to="/profile" className="py-2 border-b border-gray-50 flex items-center gap-2 text-gray-800 font-medium">
               <Settings className="w-4 h-4 text-green-700" />
               Profile Settings
             </Link>
@@ -422,7 +422,7 @@ export default function Header() {
             
             <div className="inline-flex items-center gap-2 mt-1 sm:mt-0">
               <Link 
-                to={user ? "/Submit-Program" : "/login?view=signup&redirectTo=/Submit-Program"}
+                to={user ? "/submit-program" : "/login?view=signup&redirectTo=/submit-program"}
                 className="inline-flex items-center gap-1 bg-white/15 hover:bg-white/25 text-white font-semibold px-2.5 py-1 rounded-lg border border-white/20 transition-all text-xs whitespace-nowrap shadow-xs"
               >
                 Propose or Add a Project &rarr;
@@ -481,7 +481,7 @@ export default function Header() {
           <UserForm onSubmit={handleModalFormSubmit} />
           <div className="mt-4 text-center">
             <Link 
-              to="/Programs" 
+              to="/programs"
               onClick={() => setEligibilityModalOpen(false)}
               className="text-sm font-medium text-green-600 hover:text-green-800 hover:underline"
             >

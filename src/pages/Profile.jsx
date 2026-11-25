@@ -91,7 +91,7 @@ export default function Profile() {
               <ChevronLeft className="w-5 h-5 mr-1" />
               Back to Dashboard
             </Button>
-            <Link to="/My-Report">
+            <Link to="/my-report">
               <Button
                 className="bg-green-700 hover:bg-green-800"
               >

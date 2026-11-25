@@ -7,5 +7,147 @@
       "source": "/(.*)",
       "destination": "/index.html"
     }
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "main": false,
+      "dev": false,
+      "codex/40-free-abuse-controls": false,
+      "codex/staging-production-pipeline": false,
+      "codex/lowercase-routes": false,
+      "codex/sprint-1-staging": false
+    }
+  },
+  "redirects": [
+    {
+      "source": "/Login",
+      "destination": "/login",
+      "permanent": true
+    },
+    {
+      "source": "/Home",
+      "destination": "/home",
+      "permanent": true
+    },
+    {
+      "source": "/About",
+      "destination": "/about",
+      "permanent": true
+    },
+    {
+      "source": "/Programs",
+      "destination": "/programs",
+      "permanent": true
+    },
+    {
+      "source": "/Projects",
+      "destination": "/projects",
+      "permanent": true
+    },
+    {
+      "source": "/Blog",
+      "destination": "/blog",
+      "permanent": true
+    },
+    {
+      "source": "/BlogPost",
+      "destination": "/blogpost",
+      "permanent": true
+    },
+    {
+      "source": "/Terms",
+      "destination": "/terms",
+      "permanent": true
+    },
+    {
+      "source": "/Privacy",
+      "destination": "/privacy",
+      "permanent": true
+    },
+    {
+      "source": "/Cookie-Policy",
+      "destination": "/cookie-policy",
+      "permanent": true
+    },
+    {
+      "source": "/Disclaimer",
+      "destination": "/disclaimer",
+      "permanent": true
+    },
+    {
+      "source": "/Accessibility",
+      "destination": "/accessibility",
+      "permanent": true
+    },
+    {
+      "source": "/Community",
+      "destination": "/community",
+      "permanent": true
+    },
+    {
+      "source": "/My-Report",
+      "destination": "/my-report",
+      "permanent": true
+    },
+    {
+      "source": "/Services",
+      "destination": "/services",
+      "permanent": true
+    },
+    {
+      "source": "/Ecosystem",
+      "destination": "/ecosystem",
+      "permanent": true
+    },
+    {
+      "source": "/Donate/Success",
+      "destination": "/donate/success",
+      "permanent": true
+    },
+    {
+      "source": "/Dashboard",
+      "destination": "/dashboard",
+      "permanent": true
+    },
+    {
+      "source": "/My-Programs",
+      "destination": "/my-programs",
+      "permanent": true
+    },
+    {
+      "source": "/Profile",
+      "destination": "/profile",
+      "permanent": true
+    },
+    {
+      "source": "/EditProfile",
+      "destination": "/editprofile",
+      "permanent": true
+    },
+    {
+      "source": "/Manage-Program",
+      "destination": "/manage-program",
+      "permanent": true
+    },
+    {
+      "source": "/SubmitProgram",
+      "destination": "/submitprogram",
+      "permanent": true
+    },
+    {
+      "source": "/Submit-Program",
+      "destination": "/submit-program",
+      "permanent": true
+    },
+    {
+      "source": "/Admin/Submissions",
+      "destination": "/admin/submissions",
+      "permanent": true
+    },
+    {
+      "source": "/Admin/Users",
+      "destination": "/admin/users",
+      "permanent": true
+    }
   ]
 }

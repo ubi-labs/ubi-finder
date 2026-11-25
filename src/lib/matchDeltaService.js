@@ -107,7 +107,7 @@ export async function syncMatchSnapshotAndDetectDeltas(user, profile, allProgram
           program_id: prevId,
           program_name: name,
           severity: "warning",
-          action_url: `/My-Report`
+          action_url: `/my-report`
         });
       }
     });

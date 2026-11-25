@@ -387,7 +387,8 @@ export default function UserForm({ onSubmit = null, onComplete = null, initialDa
           women_count: formData.women_count ? Number(formData.women_count) : null,
         };
 
-        localStorage.setItem("user_profile_data", JSON.stringify(unauthRecord));
+        // Keep the onboarding answers replayable, but do not expose them as a
+        // saved profile until the CAPTCHA-protected signup request succeeds.
         localStorage.setItem("pendingProfile", JSON.stringify(unauthRecord));
 
         const verification = captchaOptions(captchaToken, localCaptchaDevelopment);
@@ -395,7 +396,7 @@ export default function UserForm({ onSubmit = null, onComplete = null, initialDa
           email: email.trim(),
           options: {
             ...verification,
-            emailRedirectTo: `${window.location.origin}/My-Report`,
+            emailRedirectTo: `${window.location.origin}/my-report`,
             data: {
               full_name: formData.name.trim(),
               display_name: formData.name.trim()
@@ -404,6 +405,7 @@ export default function UserForm({ onSubmit = null, onComplete = null, initialDa
         });
 
         if (error) throw error;
+        localStorage.setItem("user_profile_data", JSON.stringify(unauthRecord));
         setSent(true);
         if (onSubmit) onSubmit(unauthRecord);
       }

@@ -56,7 +56,7 @@ export default function FundLoopClaim() {
         
         {/* Navigation Breadcrumb */}
         <div className="flex items-center gap-2 text-xs text-gray-500">
-          <Link to="/Programs" className="hover:text-blue-700">Programs</Link>
+          <Link to="/programs" className="hover:text-blue-700">Programs</Link>
           <span>/</span>
           <span className="font-semibold text-gray-900">FundLoop Streaming Terminal</span>
         </div>

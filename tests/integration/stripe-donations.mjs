@@ -12,6 +12,8 @@ const sessions = [];
 const cryptoIds = [];
 let testUser;
 try {
+  const catalog = await checked(anon.from('programs').select('program_id').limit(1));
+  assert.equal(catalog.length, 1, 'anonymous users can read the public catalog');
   const id = await reserve(500);
   const session = `cs_test_${randomUUID().replaceAll('-', '')}`;
   sessions.push(session);
@@ -65,7 +67,9 @@ try {
   if (login.error) throw login.error;
   assert.ok((await signed.rpc('confirm_crypto_donation', { p_donation_id: cryptoId, p_verified_amount_cents: 99999, p_livemode: false, p_reviewer: 'forged' })).error);
   assert.ok((await anon.from('support_donations').insert({ amount_usd: 500, status: 'completed', review_status: 'confirmed' })).error);
-  assert.deepEqual(await checked(anon.from('support_donations').select('donor_name,transaction_hash').eq('id', cryptoId)), []);
+  const privateDonation = await anon.from('support_donations').select('donor_name,transaction_hash').eq('id', cryptoId);
+  if (privateDonation.error) assert.equal(privateDonation.error.code, '42501');
+  else assert.deepEqual(privateDonation.data, []);
   const stripeId = await checked(admin.rpc('reserve_donation_checkout', { p_donor_key: accountKey, p_user_id: testUser.id, p_amount_cents: 500, p_livemode: false }));
   const signedSession = `cs_test_${randomUUID().replaceAll('-', '')}`;
   sessions.push(signedSession);

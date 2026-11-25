@@ -2,6 +2,7 @@ import TurnstileChallenge from '@/components/TurnstileChallenge';
 import { captchaOptions, localCaptchaDevelopment } from '@/lib/captcha';
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { canonicalizePageUrl } from '@/lib/routePaths';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -57,8 +58,9 @@ export default function Login() {
   const [captchaAttempt, setCaptchaAttempt] = useState(0);
   const [message, setMessage] = useState(null);
 
-  const redirectParam = searchParams.get('redirectTo') || searchParams.get('returnTo');
-  const defaultRedirect = redirectParam || '/Dashboard';
+  const requestedRedirect = searchParams.get('redirectTo') || searchParams.get('returnTo');
+  const redirectParam = requestedRedirect ? canonicalizePageUrl(requestedRedirect) : null;
+  const defaultRedirect = redirectParam || '/dashboard';
   const actionDescription = getActionDescription(redirectParam);
   const toastShownRef = React.useRef(false);
 
@@ -124,8 +126,8 @@ export default function Login() {
     setLoading(true);
     setMessage(null);
 
-    const signupTarget = redirectParam || '/My-Report';
-    const signinTarget = redirectParam || '/Programs';
+    const signupTarget = redirectParam || '/my-report';
+    const signinTarget = redirectParam || '/programs';
 
     try {
       const verification = captchaOptions(captchaToken, localCaptchaDevelopment);
@@ -184,7 +186,7 @@ export default function Login() {
       } else if (view === 'forgot_password') {
         const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
           ...verification,
-          redirectTo: `${window.location.origin}/Profile`
+          redirectTo: `${window.location.origin}/profile`
         });
         if (error) throw error;
         setMessage({ type: 'success', text: 'Password reset instructions sent to your email.' });

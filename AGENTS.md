@@ -14,12 +14,12 @@ Parent issues are typically type `Sprint` or `Feature`, with one or more type `G
 
 ## Branch And Session Workflow
 
-- `main` is the integration and release branch. Use a feature branch and pull request for shared changes.
+- Use feature branches and pull requests into `dev` for integration and staging. Promote verified staging changes from `dev` to the production branch `main` through a release pull request.
 - Preserve unrelated dirty and untracked work. Do not rewrite or discard user changes.
 - Update the current branch file under `agent-context/session-log/` after each completed task and before every commit.
 - Squash merging is disabled. Preserve commit history through an allowed merge or rebase workflow.
 
-Project work moves through `Inbox`, `Scoped`, `Ready`, `In Progress`, `In Review`, `On dev`, and `On main`. This repository currently has no `dev` branch, so `On dev` is used only when a future development environment is explicitly introduced. Move executable Goal or Task issues to `In Progress` when claimed and `In Review` only after the documented local validation succeeds. Move them to `On main` after the pull request is merged and the relevant main-branch checks pass.
+Project work moves through `Inbox`, `Scoped`, `Ready`, `In Progress`, `In Review`, `On dev`, and `On main`. Move executable Goal or Task issues to `In Progress` when claimed and `In Review` only after the documented local validation succeeds. Move them to `On dev` after staging deployment succeeds and to `On main` after production deployment succeeds.
 
 ## Development Contract
 

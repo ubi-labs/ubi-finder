@@ -312,7 +312,7 @@ export default function MyReport() {
           <div className="flex items-center gap-2 text-xs text-gray-500">
             <Link to="/" className="hover:text-green-700">Home</Link>
             <span>/</span>
-            <Link to="/Dashboard" className="hover:text-green-700">Dashboard</Link>
+            <Link to="/dashboard" className="hover:text-green-700">Dashboard</Link>
             <span>/</span>
             <span className="font-semibold text-gray-900">Custom Match Report</span>
           </div>
